@@ -22,7 +22,7 @@
     <!-- Quality gate (see docs/quality.md): the default .NET analyzer set had zero
          findings at adoption, so CA warnings now fail the build. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisLevel>8.0</AnalysisLevel>
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
   </PropertyGroup>
 

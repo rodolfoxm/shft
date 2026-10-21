@@ -9,7 +9,7 @@
 | Pacotes NuGet | `Microsoft.Data.Sqlite` 8.0.10 (único; usado apenas em `BadgeWatcher`) |
 | APIs do Windows | P/Invoke (`Native/Win32.cs` e afins), COM (`IShellItemImageFactory`, `ShellLink`), WinRT (`Windows.Media.Control`, no widget Tocando agora) |
 | GC | Workstation, não concorrente, `ConserveMemory=5`, `TieredPGO` |
-| Qualidade | Analisadores .NET com `AnalysisLevel=latest` e `CodeAnalysisTreatWarningsAsErrors=true` |
+| Qualidade | Analisadores .NET com `AnalysisLevel=8.0` e `CodeAnalysisTreatWarningsAsErrors=true` |
 | Testes | Nenhum projeto de teste existe |
 | Manifesto | `app.manifest`: DPI `PerMonitorV2`, compatível com Windows 10/11 |
 

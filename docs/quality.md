@@ -4,7 +4,7 @@
 
 | Comando | Prova | Quando |
 |---|---|---|
-| `dotnet build` | compila com `Nullable` e analisadores .NET (`AnalysisLevel=latest`); avisos CA falham o build | toda mudança |
+| `dotnet build` | compila com `Nullable` e analisadores .NET (`AnalysisLevel=8.0`); avisos CA falham o build | toda mudança |
 | `dotnet format whitespace --verify-no-changes` | formatação de espaço em branco | informativo; não é gate (veja abaixo) |
 | `dotnet list package --vulnerable --include-transitive` | pacotes NuGet com aviso de segurança | ao mudar dependências |
 

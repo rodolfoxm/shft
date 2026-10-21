@@ -12,7 +12,7 @@
 | Decisão | Motivo |
 |---|---|
 | Git local (`main`, sem remoto), commit inicial como backup; `bin/` e `obj/` ignorados | Projeto sem versionamento |
-| Analisadores .NET explícitos (`EnableNETAnalyzers`, `AnalysisLevel=latest`) com `CodeAnalysisTreatWarningsAsErrors` | Modo padrão sem nenhum achado na adoção → vira gate (regra do toolkit) |
+| Analisadores .NET explícitos (`EnableNETAnalyzers`, `AnalysisLevel=8.0`) com `CodeAnalysisTreatWarningsAsErrors` | Modo padrão sem nenhum achado na adoção → vira gate (regra do toolkit) |
 | `latest-recommended` não adotado | ~170 avisos de estilo para interop Win32 (CA1707, CA1401) |
 | `dotnet format` só informativo | 42 diferenças antigas; reformatar tudo sem benefício verificável |
 | ESLint, lint tipado, skills React | Não se aplicam: sem JavaScript/TypeScript |
@@ -84,3 +84,17 @@ Casos da fixture: aprovados para o cliente e harness compartilhados (detalhes em
 | Revisão de segurança de baseline | Rodar `docs/prompts/security-review.md` |
 
 **Repetir este setup:** rode o prompt 12 do toolkit; ele reusa o estado e não duplica. Gatilhos: nova revisão do toolkit, mudança de .NET, criação do projeto de testes.
+
+
+## Revisão do setup (21/10/2026)
+
+Revisor independente, somente leitura (sonnet, contexto limpo), sobre o intervalo do commit inicial ao HEAD nos três repositórios: regressões nas mudanças de código, configurações (ESLint, `.claude/settings.json`, ignores) e exatidão dos comandos documentados. Rodou `npm run verify` (mojoTWEEKS), lint, build e o build do painel (AutoCutEdits) e `dotnet build --no-incremental` (ClonaDock). **Nenhum achado alto ou médio**; as mudanças de código preservam o comportamento. Achados baixos e destino:
+
+| Achado | Destino |
+|---|---|
+| ClonaDock: `AnalysisLevel=latest` sem versão fixa quebraria o build num SDK novo | Corrigido: fixado em `8.0` |
+| ClonaDock: WFAC010 não documentado | Já documentado em `docs/quality.md` (mantido) |
+| AutoCutEdits: contagem "8 imports React" (eram 9) | Corrigido |
+| AutoCutEdits: `verify` não construía o painel | Corrigido: `build-panel.cjs` entrou no `verify` (o smoke continua manual) |
+
+Não coberto pela revisão: `npm test` e os smokes (rodados pelo coordenador), skills vendorizadas, números do `npm audit`, PRODUCT/architecture/design. Uma revisão não prova correção.

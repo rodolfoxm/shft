@@ -41,7 +41,7 @@ Mapa completo: [architecture.md](architecture.md).
 
 | Verificação | Comando | Resultado esperado |
 |---|---|---|
-| Compilação e analisadores | `dotnet build` | Sem erros. Avisos CA (analisadores .NET, `AnalysisLevel=latest`) são tratados como erro por `CodeAnalysisTreatWarningsAsErrors` |
+| Compilação e analisadores | `dotnet build` | Sem erros. Avisos CA (analisadores .NET, `AnalysisLevel=8.0`) são tratados como erro por `CodeAnalysisTreatWarningsAsErrors` |
 | Formatação (informativo) | `dotnet format whitespace --verify-no-changes` | Hoje relata diferenças de formatação preexistentes; não bloqueia |
 | Testes automatizados | não existem | Não há projeto de teste nem comando de teste. A verificação do comportamento é manual, a partir dos critérios de [PRODUCT.md](../PRODUCT.md) |
 
