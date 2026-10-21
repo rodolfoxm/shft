@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+graphify-out/
+.env
+.env.*
+!.env.example
+*.log
