@@ -1,0 +1,24 @@
+# Nunca indexar segredos, dependências, skills vendorizadas nem conteúdo gerado.
+.git/
+node_modules/
+dist/
+release/
+coverage/
+graphify-out/
+.agents/
+.claude/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+credentials.json
+*.log
+package-lock.json
+skills-lock.json
+# Saída do compilador .NET
+bin/
+obj/
+.vs/
