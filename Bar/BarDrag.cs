@@ -52,7 +52,11 @@ public sealed class BarDrag
             if (_active) Follow(e.GetPosition(_host).X);
         };
         host.MouseLeftButtonUp += (_, _) => host.ReleaseMouseCapture();
-        host.LostMouseCapture += (_, _) => End();
+        host.LostMouseCapture += (_, e) =>
+        {
+            // The event bubbles: the button handing its capture to this panel, which starts the drag, arrives here too.
+            if (e.OriginalSource == _host) End();
+        };
     }
 
     /// <summary><paramref name="handle"/> is what the pointer grabs; <paramref name="item"/> is the direct child that moves.</summary>
@@ -71,12 +75,20 @@ public sealed class BarDrag
         {
             if (_item != item || _active || e.LeftButton != MouseButtonState.Pressed) return;
             if (Math.Abs(e.GetPosition(_host).X - _start.X) < Threshold) return;
-            _active = true;
-            _moved = false;
-            item.Opacity = 0.55;
-            Started?.Invoke();
-            _host.CaptureMouse(); // taking the capture from the button is what cancels its click
+            Begin(item);
         };
+    }
+
+    internal bool IsDragging => _active;
+
+    internal void Begin(FrameworkElement item)
+    {
+        _item = item;
+        _active = true;
+        _moved = false;
+        item.Opacity = 0.55;
+        Started?.Invoke();
+        _host.CaptureMouse(); // taking the capture from the button is what cancels its click
     }
 
     bool _moved;

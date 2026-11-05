@@ -105,6 +105,43 @@ public class BarOrderTests
     [Fact] public void Pointer_right_of_everything_is_last() => Assert.Equal(3, BarOrder.Target(new double[] { 10, 30, 50 }, 99));
 }
 
+public class BarDragTests
+{
+    static void Sta(Action body)
+    {
+        Exception? failure = null;
+        var t = new Thread(() =>
+        {
+            try { body(); }
+            catch (Exception ex) { failure = ex; }
+        });
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        t.Join();
+        if (failure != null) throw failure;
+    }
+
+    static void LoseCapture(System.Windows.UIElement element) =>
+        element.RaiseEvent(new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0) { RoutedEvent = System.Windows.Input.Mouse.LostMouseCaptureEvent });
+
+    [Fact]
+    public void The_button_losing_the_mouse_to_the_bar_does_not_end_the_drag() => Sta(() =>
+    {
+        var host = new System.Windows.Controls.StackPanel();
+        var button = new System.Windows.Controls.Button();
+        host.Children.Add(button);
+        var drag = new BarDrag(host);
+
+        drag.Begin(button);
+        LoseCapture(button);
+        Assert.True(drag.IsDragging);
+
+        LoseCapture(host);
+        Assert.False(drag.IsDragging);
+        Assert.Equal(1, button.Opacity);
+    });
+}
+
 public class WinTapTests
 {
     const int Win = WinTap.LeftWin, E = 0x45;
