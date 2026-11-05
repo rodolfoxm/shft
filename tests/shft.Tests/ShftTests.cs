@@ -280,6 +280,19 @@ public class TrayMessageTests
         Assert.Equal(1u, m.State & m.StateMask);
     }
 
+    static uint VersionFrom(uint flags, uint versionField, uint current = 0)
+    {
+        var p = Payload(1, flags, 1, 1, 0, 0, "");
+        BitConverter.TryWriteBytes(p.AsSpan(8 + 800), versionField);
+        return TrayHost.VersionAfter(current, TrayHost.Parse(p)!.Value);
+    }
+
+    [Fact] public void Qt_icon_refresh_reveals_version_4() => Assert.Equal(4u, VersionFrom(0x80 | 2, 4));
+    [Fact] public void Show_tip_alone_reveals_version_4() => Assert.Equal(4u, VersionFrom(0x80, 0));
+    [Fact] public void An_old_icon_stays_old() => Assert.Equal(0u, VersionFrom(2 | 4, 0));
+    [Fact] public void A_balloon_timeout_is_not_a_version() => Assert.Equal(0u, VersionFrom(0x10, 4));
+    [Fact] public void A_known_version_is_kept() => Assert.Equal(3u, VersionFrom(2, 0, current: 3));
+
     [Fact] public void Older_short_messages_still_parse() => Assert.NotNull(TrayHost.Parse(Payload(0, 1, 1, 1, 1, 0, "", size: TrayHost.MinPayload)));
 
     [Fact]

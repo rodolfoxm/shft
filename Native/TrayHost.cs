@@ -38,7 +38,7 @@ public sealed class TrayHost : IDisposable
 
     const int WM_COPYDATA = 0x004A, WM_TIMER = 0x0113;
     const uint NIM_ADD = 0, NIM_MODIFY = 1, NIM_DELETE = 2, NIM_SETVERSION = 4;
-    const uint NIF_MESSAGE = 1, NIF_ICON = 2, NIF_TIP = 4, NIF_STATE = 8, NIF_GUID = 0x20;
+    const uint NIF_MESSAGE = 1, NIF_ICON = 2, NIF_TIP = 4, NIF_STATE = 8, NIF_INFO = 0x10, NIF_GUID = 0x20, NIF_SHOWTIP = 0x80;
     const uint NIS_HIDDEN = 1;
     const int TrayData = 1;
     const uint WM_LBUTTONDOWN = 0x201, WM_LBUTTONUP = 0x202, WM_RBUTTONDOWN = 0x204, WM_RBUTTONUP = 0x205, WM_CONTEXTMENU = 0x7B, NIN_SELECT = 0x400;
@@ -183,6 +183,14 @@ public sealed class TrayHost : IDisposable
             BitConverter.ToUInt32(p, nid + 16), new IntPtr(BitConverter.ToInt32(p, nid + 20)), tip, state, mask, version, guid);
     }
 
+    /// <summary>
+    /// The protocol an icon speaks. Apps announce it once, when they create the icon, which may have been before shft.
+    /// started; Qt apps then only refresh it. Their messages still give it away: NIF_SHOWTIP exists only in version 4,
+    /// and without a balloon the version field holds what they set. Getting this wrong loses their clicks.
+    /// </summary>
+    internal static uint VersionAfter(uint current, TrayMessage m) =>
+        (m.Flags & NIF_SHOWTIP) != 0 || (m.Version == 4 && (m.Flags & NIF_INFO) == 0) ? 4 : current;
+
     void Handle(byte[] payload)
     {
         if (Parse(payload) is not { } m) return;
@@ -206,6 +214,7 @@ public sealed class TrayHost : IDisposable
                         existing = new TrayEntry { Owner = m.Owner, Id = m.Id, Guid = m.Guid, ExePath = Win32.ProcessPath(pid) ?? "" };
                         _items.Add(existing);
                     }
+                    existing.Version = VersionAfter(existing.Version, m);
                     if ((m.Flags & NIF_MESSAGE) != 0) existing.CallbackMessage = m.Callback;
                     if ((m.Flags & NIF_TIP) != 0) existing.Tip = m.Tip;
                     if (icon != null) existing.Icon = icon;
