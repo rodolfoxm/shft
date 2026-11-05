@@ -19,6 +19,10 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>true</TieredPGO>
     <Product>shft.</Product>
+    <AssemblyTitle>shft.</AssemblyTitle>
+    <Description>A minimal desktop customization experience for Windows.</Description>
+    <Company>rodolfoxm</Company>
+    <Copyright>© 2026 rodolfoxm</Copyright>
     <!-- Quality gate (see docs/quality.md): the default .NET analyzer set had zero
          findings at adoption, so CA warnings now fail the build. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
