@@ -88,6 +88,23 @@ public class AppSearchTests
     [Fact] public void Bad_characters_are_refused() => Assert.Null(AppSearch.Direct("a<b|c", _ => true, @"C:\t"));
 }
 
+public class WinTapTests
+{
+    const int Win = WinTap.LeftWin, E = 0x45;
+
+    static bool Tap(WinTap t, params (int Key, bool Down)[] events) => events.Select(e => t.Key(e.Key, e.Down)).ToArray().Last();
+
+    [Fact] public void Alone_is_a_tap() => Assert.True(Tap(new WinTap(), (Win, true), (Win, false)));
+    [Fact] public void Right_key_too() => Assert.True(Tap(new WinTap(), (WinTap.RightWin, true), (WinTap.RightWin, false)));
+    [Fact] public void Holding_with_auto_repeat_is_still_a_tap() => Assert.True(Tap(new WinTap(), (Win, true), (Win, true), (Win, true), (Win, false)));
+    [Fact] public void A_shortcut_is_not_a_tap() => Assert.False(Tap(new WinTap(), (Win, true), (E, true), (E, false), (Win, false)));
+    [Fact] public void Auto_repeat_keeps_the_shortcut() => Assert.False(Tap(new WinTap(), (Win, true), (E, true), (Win, true), (Win, false)));
+    [Fact] public void Other_keys_alone_do_nothing() => Assert.False(Tap(new WinTap(), (E, true), (E, false)));
+    [Fact] public void A_key_released_after_win_went_down_does_not_block_the_tap() => Assert.True(Tap(new WinTap(), (Win, true), (E, false), (Win, false)));
+    [Fact] public void Next_press_starts_clean() => Assert.True(Tap(new WinTap(), (Win, true), (E, true), (Win, false), (Win, true), (Win, false)));
+    [Fact] public void Release_without_press_is_ignored() => Assert.False(Tap(new WinTap(), (Win, false)));
+}
+
 public class HotkeyTests
 {
     [Fact] public void Parses_alt_space() => Assert.Equal((1u, 0x20u), GlobalHotkey.Parse("Alt+Space"));

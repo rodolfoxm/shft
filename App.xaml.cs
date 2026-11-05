@@ -20,6 +20,9 @@ public partial class App : Application
     MenuBars? _bars;
     HwndSource? _hotkeyHost;
     GlobalHotkey? _appsHotkey, _controlHotkey;
+    readonly WinKeyLauncher _winKey;
+
+    public App() => _winKey = new WinKeyLauncher(() => Dispatcher.BeginInvoke(() => SpotlightWindow.Toggle()));
 
     public static new App Current => (App)Application.Current;
 
@@ -161,6 +164,8 @@ public partial class App : Application
             _appliedControlKey = s.ControlCenterHotkey;
             ControlsHotkeyFree = _controlHotkey?.Set(s.ControlCenterHotkey) ?? true;
         }
+        if (s.AppsWinKey) _winKey.Start();
+        else _winKey.Stop();
         if (_appliedStartup != s.StartWithWindows)
         {
             StartWithWindows.Set(s.StartWithWindows);
@@ -226,6 +231,7 @@ public partial class App : Application
         }
         try
         {
+            _winKey.Dispose();
             _appsHotkey?.Dispose();
             _controlHotkey?.Dispose();
             _hotkeyHost?.Dispose();

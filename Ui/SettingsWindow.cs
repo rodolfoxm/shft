@@ -445,6 +445,7 @@ public sealed class SettingsWindow : Window
     {
         var page = Page("apps", "Applications", "Busca rápida de todos os apps do Windows.");
         var card = Card(page);
+        Row(card, "Abrir com a tecla Windows", "Tocada sozinha, substitui o Menu Iniciar. Win+E e outros atalhos seguem iguais.", Toggle(S.AppsWinKey, v => S.AppsWinKey = v), "\uE782");
         HotkeyRow(card, S.AppsHotkey, v => S.AppsHotkey = v, () => App.AppsHotkeyFree);
         Row(card, "Favoritos", "Botão direito num app da lista para favoritar.", Btn("Limpar", () => { S.AppsFavorites.Clear(); Commit(now: true); }), "\uE734");
         Row(card, "Recentes", "Sobem na busca e aparecem primeiro na lista.", Btn("Limpar", () => { S.AppsRecent.Clear(); Commit(now: true); }), "\uE81C");

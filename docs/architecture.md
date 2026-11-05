@@ -119,6 +119,7 @@ Decisão: tudo nativo no mesmo processo. O Seelen é Rust com interface web e AG
 | Bandeja | `Native/TrayHost.cs` | Janela `Shell_TrayWnd` própria em thread dedicada, acima da do Explorer; lê `WM_COPYDATA` e repassa tudo ao Explorer |
 | Leitura de tela | `Native/ScreenSampler.cs` | Reduz e desfoca para o vidro; `WDA_EXCLUDEFROMCAPTURE` por um instante para ler o que há atrás da barra |
 | Ações | `Native/SystemActions.cs` | Sessão, limpeza de RAM (`shft.exe --purge` elevado), atalhos globais, menus clássicos do app em foco |
+| Tecla Windows | `Native/WinKeyLauncher.cs` | Gancho de teclado de baixo nível em thread própria. Tocada sozinha, segura a soltura, injeta uma tecla sem uso (0xE8) para o Windows não abrir o Iniciar, solta a Win e abre Applications. `WinTap` é a parte testável. Não vê teclas com um app de administrador em primeiro plano |
 | Movimento | `Core/Motion.cs` | Durações, mola e o respeito à preferência de movimento |
 
 **Por que o vidro é uma foto:** o DWM arredonda o desfoque só com 8 px, ignora regiões de janela (testado) e não anima opacidade nem escala. A foto na própria janela permite qualquer raio e anima junto. A barra, retangular, e o Dock seguem com o desfoque do DWM.

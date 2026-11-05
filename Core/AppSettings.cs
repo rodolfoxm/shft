@@ -146,6 +146,8 @@ public sealed class AppSettings
     // Applications
     public string AppsHotkey { get; set; } = "Alt+Space";
     public string ControlCenterHotkey { get; set; } = "";
+    /// <summary>The Windows key tapped alone opens Applications instead of Start.</summary>
+    public bool AppsWinKey { get; set; } = true;
     public List<string> AppsFavorites { get; set; } = new();
     /// <summary>Most recent first.</summary>
     public List<string> AppsRecent { get; set; } = new();

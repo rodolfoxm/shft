@@ -147,6 +147,7 @@ public sealed class SpotlightWindow : FlyoutWindow
         _open.Closed += (_, _) => _open = null;
         var target = monitor ?? Monitors.ForWindow(Win32.GetForegroundWindow());
         _open.ShowCentered(target);
+        Win32.Activate(new System.Windows.Interop.WindowInteropHelper(_open).Handle);
         _open._search.Focus();
     }
 

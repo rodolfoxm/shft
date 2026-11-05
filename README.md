@@ -16,7 +16,7 @@ shft. brings a top bar, a dock, a control center and an app launcher together in
 - **Top bar:** logo, focused app and its classic menus, memory, system tray icons, Bluetooth, network, volume, notifications and clock, on every monitor.
 - **Three bar styles:** solid, translucent, or adaptive, where each end of the bar picks light or dark text from what is behind it.
 - **Control Center:** network, Bluetooth, media, dark mode, HDR, night light, per-monitor brightness over DDC/CI, volume and microphone with device selection.
-- **Applications:** a Spotlight-style search over every Windows app, Store apps included, driven from the keyboard, with favourites and recents.
+- **Applications:** a Spotlight-style search over every Windows app, Store apps included, driven from the keyboard, with favourites and recents. A tap of the Windows key opens it; shortcuts such as Win+E still work.
 - **Dock:** magnification, running apps, folders, badges and 13 live widgets.
 - **Light on resources:** about 80 MB of private memory and under 0.5% of one core at idle, measured with the dock and bar running.
 
