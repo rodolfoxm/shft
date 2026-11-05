@@ -154,12 +154,12 @@ public partial class App : Application
         if (_appliedAppsKey != s.AppsHotkey)
         {
             _appliedAppsKey = s.AppsHotkey;
-            _appsHotkey?.Set(s.AppsHotkey);
+            AppsHotkeyFree = _appsHotkey?.Set(s.AppsHotkey) ?? true;
         }
         if (_appliedControlKey != s.ControlCenterHotkey)
         {
             _appliedControlKey = s.ControlCenterHotkey;
-            _controlHotkey?.Set(s.ControlCenterHotkey);
+            ControlsHotkeyFree = _controlHotkey?.Set(s.ControlCenterHotkey) ?? true;
         }
         if (_appliedStartup != s.StartWithWindows)
         {
@@ -208,6 +208,10 @@ public partial class App : Application
     public static DockController? Dock => Current._dock?.Controller;
 
     public static MenuBars? Bars => Current._bars;
+
+    public static bool AppsHotkeyFree { get; private set; } = true;
+
+    public static bool ControlsHotkeyFree { get; private set; } = true;
 
     public static void Notify(string title, string text) => Current._tray?.Notify(title, text);
 

@@ -12,11 +12,12 @@ using Shft.Widgets;
 
 namespace Shft.Ui;
 
-/// <summary>All of shft.'s settings in one window; every change applies right away.</summary>
+/// <summary>All of shft.'s settings in one window; every change applies right away. Its look lives in SettingsTheme.xaml and SettingsKit.</summary>
 public sealed class SettingsWindow : Window
 {
     readonly ListBox _nav;
     readonly ContentControl _page;
+    readonly ScrollViewer _scroll;
     readonly DispatcherTimer _debounce;
     readonly Dictionary<string, Func<UIElement>> _pages;
 
@@ -24,16 +25,19 @@ public sealed class SettingsWindow : Window
 
     public SettingsWindow()
     {
+        Resources.MergedDictionaries.Add(SettingsKit.Theme);
         Title = "shft. — Configurações";
-        Width = 860;
-        Height = 660;
-        MinWidth = 720;
+        Width = 960;
+        Height = 680;
+        MinWidth = 760;
         MinHeight = 480;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
+        SetResourceReference(FontFamilyProperty, "SettingsFont");
         FontSize = 13;
-        SetResourceReference(BackgroundProperty, "MenuBackBrush");
+        SetResourceReference(BackgroundProperty, "MainBrush");
         SetResourceReference(ForegroundProperty, "TextBrush");
+        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
+        UseLayoutRounding = true;
         try { Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/shft.ico")); } catch { }
 
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(220) };
@@ -56,46 +60,73 @@ public sealed class SettingsWindow : Window
 
         _nav = new ListBox
         {
-            Width = 216,
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
-            Padding = new Thickness(10, 14, 10, 12),
-            ItemContainerStyle = (Style)Application.Current.Resources["AppRowItem"],
+            Padding = new Thickness(12, 0, 12, 12),
+            ItemContainerStyle = (Style)SettingsKit.Theme["NavItem"],
         };
-        foreach (var (key, label, glyph) in new[]
-                 {
-                     ("look", "Aparência", ""), ("bar", "Barra superior", ""), ("dock", "Dock", ""), ("items", "Itens do Dock", ""),
-                     ("panel", "Central de Controle", Glyph.Controls), ("apps", "Applications", Glyph.Search), ("motion", "Animações", ""),
-                     ("behaviour", "Comportamento", ""), ("system", "Inicialização e sistema", Glyph.Power), ("widgets", "Widgets", ""), ("about", "Sobre", ""),
-                 })
+        ScrollViewer.SetHorizontalScrollBarVisibility(_nav, ScrollBarVisibility.Disabled);
+        foreach (var (key, label, glyph) in NavItems)
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal };
-            row.Children.Add(new TextBlock { Text = glyph, FontFamily = Glyph.Font, FontSize = 15, Width = 28, VerticalAlignment = VerticalAlignment.Center });
-            row.Children.Add(new TextBlock { Text = label, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center });
-            var item = new ListBoxItem { Content = row, Tag = key, Focusable = true };
+            var icon = SettingsKit.Icon(glyph, 15);
+            icon.Width = 28;
+            icon.TextAlignment = TextAlignment.Left;
+            row.Children.Add(icon);
+            row.Children.Add(new TextBlock { Text = label, FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
+            var item = new ListBoxItem { Content = row, Tag = key };
             AutomationProperties.SetName(item, label);
             _nav.Items.Add(item);
         }
         _nav.SelectionChanged += (_, _) => ShowPage();
 
-        _page = new ContentControl();
-        var scroll = new ScrollViewer { Content = _page, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(24, 20, 24, 20) };
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 20, 20, 20) };
+        brand.Children.Add(SettingsKit.Symbol(24));
+        var word = new TextBlock { Text = "shft.", FontSize = 19, FontWeight = FontWeights.SemiBold, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        word.SetResourceReference(TextBlock.FontFamilyProperty, "SettingsDisplayFont");
+        brand.Children.Add(word);
+
+        var side = new DockPanel { Width = 232 };
+        side.SetResourceReference(Panel.BackgroundProperty, "SidebarBrush");
+        DockPanel.SetDock(brand, System.Windows.Controls.Dock.Top);
+        side.Children.Add(brand);
+        side.Children.Add(_nav);
+
+        var line = new Border { Width = 1 };
+        line.SetResourceReference(Border.BackgroundProperty, "DividerBrush");
+
+        _page = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        _scroll = new ScrollViewer { Content = _page, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(32, 24, 32, 24), Focusable = false };
 
         var root = new DockPanel();
-        DockPanel.SetDock(_nav, System.Windows.Controls.Dock.Left);
-        root.Children.Add(_nav);
-        root.Children.Add(scroll);
+        DockPanel.SetDock(side, System.Windows.Controls.Dock.Left);
+        DockPanel.SetDock(line, System.Windows.Controls.Dock.Left);
+        root.Children.Add(side);
+        root.Children.Add(line);
+        root.Children.Add(_scroll);
         Content = root;
         _nav.SelectedIndex = 0;
         Closed += (_, _) => { if (_debounce.IsEnabled) { _debounce.Stop(); SettingsStore.Save(); } };
     }
 
+    static readonly (string Key, string Label, string Glyph)[] NavItems =
+    {
+        ("look", "Aparência", "\uE790"), ("bar", "Barra superior", "\uE7F4"), ("dock", "Dock", "\uE75B"), ("items", "Itens do Dock", "\uE8FD"),
+        ("panel", "Central de Controle", "\uE9E9"), ("apps", "Applications", "\uE721"), ("motion", "Animações", "\uE916"),
+        ("behaviour", "Comportamento", "\uE7C4"), ("system", "Inicialização e sistema", "\uE7E8"), ("widgets", "Widgets", "\uF0E2"), ("about", "Sobre", "\uE946"),
+    };
+
+    static string GlyphOf(string key) => NavItems.First(n => n.Key == key).Glyph;
+
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        // Title bar in the same light or dark as the rest.
-        int dark = Theme.Resolve(S).IsDark ? 1 : 0;
-        Win32.DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(this).Handle, 20, ref dark, sizeof(int));
+        // A solid title bar in the main colour; Windows 10 ignores the colours and keeps it dark.
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        int dark = 1, caption = 0x14110F, text = 0xEAE7E6; // COLORREF is 0x00BBGGRR
+        Win32.DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
+        Win32.DwmSetWindowAttribute(hwnd, 35, ref caption, sizeof(int));
+        Win32.DwmSetWindowAttribute(hwnd, 36, ref text, sizeof(int));
     }
 
     public void Select(string key)
@@ -107,7 +138,10 @@ public sealed class SettingsWindow : Window
     void ShowPage()
     {
         if (_nav.SelectedItem is ListBoxItem { Tag: string key } && _pages.TryGetValue(key, out var build))
+        {
             _page.Content = build();
+            _scroll.ScrollToTop();
+        }
     }
 
     void Commit(bool now = false)
@@ -116,201 +150,103 @@ public sealed class SettingsWindow : Window
         else { _debounce.Stop(); _debounce.Start(); }
     }
 
-    // ---------------------------------------------------------------- building blocks
-
-    static TextBlock Muted(string text, double size = 12)
+    /// <summary>Saves and redraws the page, for choices that make other rows available or not.</summary>
+    void CommitAndRefresh()
     {
-        var t = new TextBlock { Text = text, FontSize = size, TextWrapping = TextWrapping.Wrap };
-        t.SetResourceReference(TextBlock.ForegroundProperty, "TextSubtleBrush");
-        return t;
+        Commit(now: true);
+        Dispatcher.BeginInvoke(ShowPage, DispatcherPriority.Background);
     }
 
-    static StackPanel Page(string title, string? intro = null)
+    // ---------------------------------------------------------------- the kit, wired to saving
+
+    static StackPanel Page(string key, string title, string description) => SettingsKit.Page(GlyphOf(key), title, description);
+    static StackPanel Card(Panel page, string? header = null) => SettingsKit.Card(page, header);
+    static Grid Row(Panel card, string label, string? help, UIElement control, string? glyph = null) => SettingsKit.Row(card, label, help, control, glyph);
+    static Button Btn(string text, Action click) => SettingsKit.Button(text, click);
+    static TextBlock Muted(string text, double size = 12) => SettingsKit.Muted(text, size);
+
+    SwitchToggle Toggle(bool value, Action<bool> set) => SettingsKit.Toggle(value, v => { set(v); Commit(now: true); });
+
+    ComboBox Choice<T>(IEnumerable<(T Value, string Label)> options, T current, Action<T> set) =>
+        SettingsKit.Choice(options, current, v => { set(v); Commit(now: true); });
+
+    FrameworkElement Slider(double min, double max, double value, double step, Func<double, string> format, Action<double> set) =>
+        SettingsKit.Slider(min, max, value, step, format, v => { set(v); Commit(); });
+
+    TextBox Field(string value, Action<string> set) => SettingsKit.Field(value, v => { set(v); Commit(); });
+
+    /// <summary>A shortcut row that says so when another app already holds the combination.</summary>
+    void HotkeyRow(Panel card, string current, Action<string> set, Func<bool> free)
     {
-        var p = new StackPanel { MaxWidth = 620, HorizontalAlignment = HorizontalAlignment.Left };
-        p.Children.Add(new TextBlock { Text = title, FontSize = 26, FontWeight = FontWeights.SemiBold, FontFamily = new FontFamily("Segoe UI Variable Display, Segoe UI"), Margin = new Thickness(0, 0, 0, 4) });
-        if (intro != null)
+        TextBlock? note = null;
+        void Check()
         {
-            var t = Muted(intro, 13);
-            t.Margin = new Thickness(0, 0, 0, 12);
-            p.Children.Add(t);
+            note!.Text = "Outro app já usa esse atalho. Escolha outro.";
+            note.Visibility = free() ? Visibility.Collapsed : Visibility.Visible;
         }
-        return p;
-    }
-
-    static StackPanel Card(Panel page, string? header = null)
-    {
-        if (header != null)
-            page.Children.Add(new TextBlock { Text = header, FontWeight = FontWeights.SemiBold, Margin = new Thickness(2, 14, 0, 6) });
-        var inner = new StackPanel();
-        var card = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 6, 16, 6), Child = inner };
-        card.SetResourceReference(Border.BackgroundProperty, "TileBrush");
-        card.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
-        page.Children.Add(card);
-        return inner;
-    }
-
-    static void Row(Panel card, string label, string? help, UIElement control)
-    {
-        var grid = new Grid { Margin = new Thickness(0, 8, 0, 8) };
-        grid.ColumnDefinitions.Add(new ColumnDefinition());
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
-        text.Children.Add(new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap });
-        if (help != null) text.Children.Add(Muted(help));
-        Grid.SetColumn(control, 1);
-        if (control is FrameworkElement fe) fe.VerticalAlignment = VerticalAlignment.Center;
-        AutomationProperties.SetName(control, label);
-        grid.Children.Add(text);
-        grid.Children.Add(control);
-        if (card.Children.Count > 0)
+        var row = Row(card, "Atalho para abrir", "Clique e pressione as teclas. Backspace limpa.", SettingsKit.HotkeyBox(current, v =>
         {
-            var line = new Border { Height = 1 };
-            line.SetResourceReference(Border.BackgroundProperty, "TileRimBrush");
-            card.Children.Add(line);
-        }
-        card.Children.Add(grid);
-    }
-
-    SwitchToggle Toggle(bool value, Action<bool> set)
-    {
-        var c = new SwitchToggle("", value);
-        c.Click += (_, _) => { set(c.IsChecked == true); Commit(now: true); };
-        return c;
-    }
-
-    ComboBox Choice<T>(IEnumerable<(T Value, string Label)> options, T current, Action<T> set)
-    {
-        var box = new ComboBox { Width = 220 };
-        foreach (var (value, label) in options)
-        {
-            var item = new ComboBoxItem { Content = label, Tag = value };
-            box.Items.Add(item);
-            if (Equals(value, current)) box.SelectedItem = item;
-        }
-        box.SelectionChanged += (_, _) =>
-        {
-            if (box.SelectedItem is ComboBoxItem { Tag: T v }) { set(v); Commit(now: true); }
-        };
-        return box;
-    }
-
-    FrameworkElement Slider(double min, double max, double value, double step, Func<double, string> format, Action<double> set)
-    {
-        var label = Muted(format(value), 13);
-        label.Width = 60;
-        label.TextAlignment = TextAlignment.Right;
-        label.VerticalAlignment = VerticalAlignment.Center;
-        var slider = new CapsuleSlider("", thin: true) { Width = 200, VerticalAlignment = VerticalAlignment.Center, Value = (value - min) / (max - min) };
-        slider.ValueChanged += v =>
-        {
-            double snapped = Math.Round((min + v * (max - min)) / step) * step;
-            label.Text = format(snapped);
-            set(snapped);
-            Commit();
-        };
-        var panel = new StackPanel { Orientation = Orientation.Horizontal };
-        panel.Children.Add(slider);
-        panel.Children.Add(label);
-        return panel;
-    }
-
-    static Button Btn(string text, Action click)
-    {
-        var b = FlyoutWindow.FlatButton(new TextBlock { Text = text }, click, 10);
-        b.Margin = new Thickness(0, 0, 6, 0);
-        return b;
-    }
-
-    TextBox Field(string value, Action<string> set, double width = 220)
-    {
-        var box = new TextBox { Text = value, Width = width, Padding = new Thickness(6, 4, 6, 4), BorderThickness = new Thickness(1), Background = Brushes.Transparent };
-        box.SetResourceReference(ForegroundProperty, "TextBrush");
-        box.SetResourceReference(TextBox.CaretBrushProperty, "TextBrush");
-        box.SetResourceReference(BorderBrushProperty, "TileRimBrush");
-        box.TextChanged += (_, _) => { set(box.Text.Trim()); Commit(); };
-        return box;
-    }
-
-    /// <summary>Records a shortcut: focus the box and press the keys. Backspace clears it.</summary>
-    FrameworkElement HotkeyBox(string value, Action<string> set)
-    {
-        var box = new TextBox { Text = value, Width = 180, IsReadOnly = true, Padding = new Thickness(6, 4, 6, 4), Background = Brushes.Transparent, TextAlignment = TextAlignment.Center, BorderThickness = new Thickness(1) };
-        box.SetResourceReference(ForegroundProperty, "TextBrush");
-        box.SetResourceReference(BorderBrushProperty, "TileRimBrush");
-        box.PreviewKeyDown += (_, e) =>
-        {
-            e.Handled = true;
-            var key = e.Key == Key.System ? e.SystemKey : e.Key;
-            if (key is Key.Back or Key.Delete)
-            {
-                box.Text = "";
-                set("");
-                Commit(now: true);
-                return;
-            }
-            if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin or Key.Tab or Key.Escape) return;
-            var mods = Keyboard.Modifiers;
-            if (mods == ModifierKeys.None) return;
-            var text = string.Join("+", new[]
-            {
-                mods.HasFlag(ModifierKeys.Control) ? "Ctrl" : null, mods.HasFlag(ModifierKeys.Alt) ? "Alt" : null,
-                mods.HasFlag(ModifierKeys.Shift) ? "Shift" : null, mods.HasFlag(ModifierKeys.Windows) ? "Win" : null, key.ToString(),
-            }.Where(p => p != null));
-            box.Text = text;
-            set(text);
+            set(v);
             Commit(now: true);
-        };
-        return box;
+            Check();
+        }), Glyph.Search);
+        note = SettingsKit.Problem(row);
+        Check();
     }
 
     // ---------------------------------------------------------------- pages
 
     UIElement LookPage()
     {
-        var page = Page("Aparência", "A mesma identidade na barra, no Dock e nos painéis.");
+        var page = Page("look", "Aparência", "A identidade da barra, do Dock e dos painéis.");
         var look = Card(page, "Tema");
-        Row(look, "Claro ou escuro", "Automático segue o modo de cor do Windows.", Choice(new[]
+        Row(look, "Claro ou escuro", "Vale para a barra, o Dock e os painéis. Automático segue o Windows.", Choice(new[]
         {
             (ThemeMode.Auto, "Automático"), (ThemeMode.Dark, "Escuro"), (ThemeMode.Light, "Claro"),
-        }, S.Theme, v => S.Theme = v));
+        }, S.Theme, v => S.Theme = v), Glyph.Moon);
 
         var glass = Card(page, "Vidro dos painéis");
-        Row(glass, "Transparência", "Quanto o fundo aparece atrás da Central de Controle, de Applications e dos outros painéis.",
-            Slider(0.1, 0.95, S.PanelOpacity, 0.05, v => $"{(1 - v) * 100:0}%", v => S.PanelOpacity = v));
-        Row(glass, "Intensidade do desfoque", null, Slider(4, 24, S.PanelBlur, 1, v => $"{v:0}", v => S.PanelBlur = (int)v));
-        Row(glass, "Borda Liquid Glass", "Brilho no contorno, como luz numa superfície curva.", Toggle(S.PanelRim, v => S.PanelRim = v));
+        Row(glass, "Transparência", "Quanto o fundo aparece atrás dos painéis.",
+            Slider(0.1, 0.95, S.PanelOpacity, 0.05, v => $"{(1 - v) * 100:0}%", v => S.PanelOpacity = v), Glyph.Sun);
+        Row(glass, "Intensidade do desfoque", null, Slider(4, 24, S.PanelBlur, 1, v => $"{v:0}", v => S.PanelBlur = (int)v), "\uE9E9");
+        Row(glass, "Borda Liquid Glass", "Brilho no contorno, como luz numa superfície curva.", Toggle(S.PanelRim, v => S.PanelRim = v), "\uE81E");
         return page;
     }
 
     UIElement BarPage()
     {
-        var page = Page("Barra superior", "Logo, app em foco, indicadores do sistema e relógio.");
+        var page = Page("bar", "Barra superior", "Logo, app em foco, indicadores do sistema e relógio.");
         var main = Card(page);
-        Row(main, "Mostrar a barra", null, Toggle(S.TopBarEnabled, v => S.TopBarEnabled = v));
-        Row(main, "Em todos os monitores", null, Toggle(S.TopBarAllMonitors, v => S.TopBarAllMonitors = v));
-        Row(main, "Manter as janelas abaixo da barra", "Janelas maximizadas param abaixo dela.", Toggle(S.TopBarReserve, v => S.TopBarReserve = v));
-        Row(main, "Altura", null, Slider(24, 48, S.TopBarHeight, 1, v => $"{v:0} px", v => S.TopBarHeight = v));
+        Row(main, "Mostrar a barra", null, Toggle(S.TopBarEnabled, v => S.TopBarEnabled = v), "\uE7B3");
+        Row(main, "Em todos os monitores", null, Toggle(S.TopBarAllMonitors, v => S.TopBarAllMonitors = v), "\uE7F4");
+        Row(main, "Manter as janelas abaixo da barra", "Janelas maximizadas param abaixo dela.", Toggle(S.TopBarReserve, v => S.TopBarReserve = v), "\uE8A0");
+        Row(main, "Altura", null, Slider(24, 48, S.TopBarHeight, 1, v => $"{v:0} px", v => S.TopBarHeight = v), "\uE8CB");
 
         var look = Card(page, "Fundo");
-        Row(look, "Modo", "Sólido usa a cor do tema. Translúcido deixa o fundo aparecer. Adaptativo fica transparente e troca a cor dos textos e ícones conforme o que está atrás.", Choice(new[]
+        Row(look, "Modo", "Sólido usa o tema. Translúcido mostra o fundo. Adaptativo fica transparente e ajusta a cor do texto.", SettingsKit.Choice(new[]
         {
             (TopBarStyle.Solid, "Sólido"), (TopBarStyle.Translucent, "Translúcido"), (TopBarStyle.Adaptive, "Adaptativo"),
-        }, S.TopBarStyle, v => S.TopBarStyle = v));
-        Row(look, "Opacidade no modo translúcido", null, Slider(0, 1, S.TopBarOpacity, 0.05, v => $"{v * 100:0}%", v => S.TopBarOpacity = v));
-        Row(look, "Desfoque no modo translúcido", null, Toggle(S.TopBarBlur, v => S.TopBarBlur = v));
-        Row(look, "Contraste adaptativo", "No modo adaptativo, põe uma camada suave atrás do conteúdo quando o fundo é misto.", Toggle(S.TopBarScrim, v => S.TopBarScrim = v));
+        }, S.TopBarStyle, v => { S.TopBarStyle = v; CommitAndRefresh(); }), "\uE790");
+        var opacity = Row(look, "Opacidade", null, Slider(0, 1, S.TopBarOpacity, 0.05, v => $"{v * 100:0}%", v => S.TopBarOpacity = v), Glyph.Sun);
+        var blur = Row(look, "Desfoque", null, Toggle(S.TopBarBlur, v => S.TopBarBlur = v), "\uE81E");
+        var scrim = Row(look, "Contraste adaptativo", "Camada suave atrás do conteúdo quando o fundo é misto.", Toggle(S.TopBarScrim, v => S.TopBarScrim = v), Glyph.Eye);
+        if (S.TopBarStyle != TopBarStyle.Translucent)
+        {
+            SettingsKit.Unavailable(opacity, "Disponível no modo Translúcido.");
+            SettingsKit.Unavailable(blur, "Disponível no modo Translúcido.");
+        }
+        if (S.TopBarStyle != TopBarStyle.Adaptive) SettingsKit.Unavailable(scrim, "Disponível no modo Adaptativo.");
 
         var content = Card(page, "Conteúdo");
         var logo = new StackPanel { Orientation = Orientation.Horizontal };
         logo.Children.Add(Btn("Escolher…", LogoPicker.Choose));
         logo.Children.Add(Btn("Original", () => { S.TopBarLogo = ""; Commit(now: true); }));
-        Row(content, "Logo", "Também dá para trocar com o botão direito na própria logo.", logo);
-        Row(content, "Pintar a logo com a cor do texto", "Para logos de uma cor só, como a da Apple.", Toggle(S.TopBarLogoTint, v => S.TopBarLogoTint = v));
-        Row(content, "Nome", "Vazio usa o nome do Windows.", Field(S.TopBarUserName, v => S.TopBarUserName = v));
-        Row(content, "Mostrar o nome", null, Toggle(S.TopBarShowUser, v => S.TopBarShowUser = v));
-        Row(content, "Mostrar o app em foco", null, Toggle(S.TopBarShowApp, v => S.TopBarShowApp = v));
-        Row(content, "Mostrar a memória", "Clicar nela libera a RAM ociosa; o Windows pede confirmação.", Toggle(S.TopBarShowMemory, v => S.TopBarShowMemory = v));
+        Row(content, "Logo", "Também dá para trocar com o botão direito na logo.", logo, "\uEB9F");
+        Row(content, "Pintar a logo com a cor do texto", "Para logos de uma cor só, como a da Apple.", Toggle(S.TopBarLogoTint, v => S.TopBarLogoTint = v), "\uE790");
+        Row(content, "Nome", "Vazio usa o nome do Windows.", Field(S.TopBarUserName, v => S.TopBarUserName = v), "\uE77B");
+        Row(content, "Mostrar o nome", null, Toggle(S.TopBarShowUser, v => S.TopBarShowUser = v), "\uE77B");
+        Row(content, "Mostrar o app em foco", null, Toggle(S.TopBarShowApp, v => S.TopBarShowApp = v), "\uE737");
+        Row(content, "Mostrar a memória", "Clicar nela libera a RAM ociosa; o Windows pede confirmação.", Toggle(S.TopBarShowMemory, v => S.TopBarShowMemory = v), Glyph.Memory);
         Row(content, "Formato do relógio", "ddd = dia, MMM = mês, HH = hora, mm = minutos, tt = AM/PM.", Field(S.TopBarClockFormat, v =>
         {
             try
@@ -319,51 +255,48 @@ public sealed class SettingsWindow : Window
                 if (v.Length > 0) S.TopBarClockFormat = v;
             }
             catch (FormatException) { } // half-typed format: keep the last good one
-        }));
+        }), "\uE823");
         return page;
     }
 
     UIElement DockPage()
     {
-        var page = Page("Dock", "Posição, tamanho e o vidro do Dock.");
+        var page = Page("dock", "Dock", "Posição, aparência e ícones do Dock.");
         var place = Card(page, "Posição");
         Row(place, "Borda da tela", "Em qual borda o Dock fica.", Choice(new[]
         {
             (DockEdge.Bottom, "Embaixo"), (DockEdge.Left, "À esquerda"), (DockEdge.Right, "À direita"), (DockEdge.Top, "No topo"),
-        }, S.Edge, v => S.Edge = v));
+        }, S.Edge, v => S.Edge = v), "\uE75B");
         var monitors = Monitors.All();
         var options = new List<(int, string)> { (-1, "Monitor principal") };
         options.AddRange(monitors.Select((m, i) => (i, Monitors.Describe(m, i))));
-        Row(place, "Monitor", null, Choice(options, S.Monitor, v => S.Monitor = v));
-        Row(place, "Distância da borda da tela", null, Slider(0, 30, S.EdgeGap, 1, v => $"{v:0} px", v => S.EdgeGap = v));
+        Row(place, "Monitor", null, Choice(options, S.Monitor, v => S.Monitor = v), "\uE7F4");
+        Row(place, "Distância da borda da tela", null, Slider(0, 30, S.EdgeGap, 1, v => $"{v:0} px", v => S.EdgeGap = v), "\uE7C2");
 
         var look = Card(page, "Barra");
-        Row(look, "Desfoque atrás da barra", "Leve é um desfoque puro, sem tom. Acrílico é o material do Windows, com tom e granulado.", Choice(new[]
+        Row(look, "Desfoque atrás da barra", "Leve não tem tom. Acrílico é o material do Windows, com tom e granulado.", Choice(new[]
         {
             (0, "Nenhum"), (1, "Leve"), (2, "Acrílico"),
-        }, !S.Glass ? 0 : S.Acrylic ? 2 : 1, v => { S.Glass = v > 0; S.Acrylic = v == 2; }));
-        Row(look, "Opacidade do fundo", "0% deixa só o vidro.", Slider(0, 1, S.BarOpacity, 0.05, v => $"{v * 100:0}%", v => S.BarOpacity = v));
-        Row(look, "Borda Liquid Glass", "Brilho no topo e uma franja de cor discreta.", Toggle(S.LiquidGlass, v => S.LiquidGlass = v));
-        Row(look, "Arredondamento", "Com o desfoque ligado, o Windows 11 usa raio fixo de 8 px e a barra acompanha.", Slider(0, 32, S.CornerRadius, 1, v => $"{v:0} px", v => S.CornerRadius = v));
-        Row(look, "Cor do fundo", "Tinge o vidro. Vazio usa a cor do tema.", ColorPicker(S.Tint, v => S.Tint = v));
-        Row(look, "Cor do indicador", "A bolinha embaixo dos apps abertos.", ColorPicker(S.IndicatorColor, v => S.IndicatorColor = v));
+        }, !S.Glass ? 0 : S.Acrylic ? 2 : 1, v => { S.Glass = v > 0; S.Acrylic = v == 2; }), "\uE81E");
+        Row(look, "Opacidade do fundo", "0% deixa só o vidro.", Slider(0, 1, S.BarOpacity, 0.05, v => $"{v * 100:0}%", v => S.BarOpacity = v), Glyph.Sun);
+        Row(look, "Borda Liquid Glass", "Brilho no topo e uma franja de cor discreta.", Toggle(S.LiquidGlass, v => S.LiquidGlass = v), "\uE81E");
+        Row(look, "Arredondamento", "Com desfoque, o Windows 11 fixa o raio em 8 px.", Slider(0, 32, S.CornerRadius, 1, v => $"{v:0} px", v => S.CornerRadius = v), "\uE8A3");
+        Row(look, "Cor do fundo", "Tinge o vidro. Vazio usa a cor do tema.", ColorPicker(S.Tint, v => S.Tint = v), "\uE790");
+        Row(look, "Cor do indicador", "A bolinha embaixo dos apps abertos.", ColorPicker(S.IndicatorColor, v => S.IndicatorColor = v), "\uE91F");
 
         var icons = Card(page, "Ícones");
-        Row(icons, "Tamanho dos ícones", null, Slider(28, 96, S.IconSize, 2, v => $"{v:0} px", v => S.IconSize = v));
-        Row(icons, "Ampliação ao passar o mouse", "1,0× desliga.", Slider(1, 2.5, S.Magnification, 0.05, v => $"{v:0.00}×", v => S.Magnification = v));
-        Row(icons, "Mostrar o nome ao passar o mouse", null, Toggle(S.ShowLabels, v => S.ShowLabels = v));
-        Row(icons, "Selos de notificação", "Número de não lidas, para apps que publicam selo no Windows.", Toggle(S.ShowBadges, v => S.ShowBadges = v));
-        Row(icons, "Animação de abertura", "O ícone pula enquanto o app abre.", Toggle(S.BounceOnLaunch, v => S.BounceOnLaunch = v));
+        Row(icons, "Tamanho dos ícones", null, Slider(28, 96, S.IconSize, 2, v => $"{v:0} px", v => S.IconSize = v), "\uE740");
+        Row(icons, "Ampliação ao passar o mouse", "1,0× desliga.", Slider(1, 2.5, S.Magnification, 0.05, v => $"{v:0.00}×", v => S.Magnification = v), Glyph.Search);
+        Row(icons, "Mostrar o nome ao passar o mouse", null, Toggle(S.ShowLabels, v => S.ShowLabels = v), "\uE8D2");
+        Row(icons, "Selos de notificação", "Número de não lidas, para apps que publicam selo no Windows.", Toggle(S.ShowBadges, v => S.ShowBadges = v), Glyph.Bell);
+        Row(icons, "Animação de abertura", "O ícone pula enquanto o app abre.", Toggle(S.BounceOnLaunch, v => S.BounceOnLaunch = v), "\uE7C9");
         return page;
     }
 
     FrameworkElement ColorPicker(string current, Action<string> set)
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal };
-        var box = new TextBox { Text = current, Width = 80, Margin = new Thickness(8, 0, 0, 0), VerticalContentAlignment = VerticalAlignment.Center, Background = Brushes.Transparent };
-        box.SetResourceReference(ForegroundProperty, "TextBrush");
-        box.SetResourceReference(TextBox.CaretBrushProperty, "TextBrush");
-        box.SetResourceReference(BorderBrushProperty, "TileRimBrush");
+        var box = new TextBox { Text = current, Width = 84, Margin = new Thickness(8, 0, 0, 0) };
         string[] swatches = { "", "#1C1C20", "#F4F4F6", "#1E3A8A", "#7C3AED", "#BE185D", "#047857", "#B45309" };
         foreach (var hex in swatches)
         {
@@ -393,21 +326,22 @@ public sealed class SettingsWindow : Window
 
     UIElement ItemsPage()
     {
-        var page = Page("Itens do Dock", "Arraste um ícone no Dock para reordenar; puxe-o para fora da barra para remover. Também dá para soltar arquivos e atalhos no Dock.");
+        var page = Page("items", "Itens do Dock", "Arraste no Dock para reordenar; puxe para fora para remover. Solte arquivos e atalhos para adicionar.");
 
         var fixedItems = Card(page, "Itens fixos");
-        Row(fixedItems, "Botão de Applications", "Primeiro no Dock; abre a busca de apps.", Toggle(S.ShowLauncher, v => S.ShowLauncher = v));
+        Row(fixedItems, "Botão de Applications", "Primeiro no Dock; abre a busca de apps.", Toggle(S.ShowLauncher, v => S.ShowLauncher = v), Glyph.Search);
         var iconButtons = new StackPanel { Orientation = Orientation.Horizontal };
         iconButtons.Children.Add(Btn("Escolher…", () => App.Dock?.ChooseLauncherIcon()));
         iconButtons.Children.Add(Btn("Original", Dock.DockController.ResetLauncherIcon));
-        Row(fixedItems, "Ícone do botão", "PNG, JPG ou ICO, ou um app para usar o ícone dele.", iconButtons);
-        Row(fixedItems, "Mostrar apps abertos", "Apps abertos que não estão fixados, depois de um separador.", Toggle(S.ShowOpenApps, v => S.ShowOpenApps = v));
-        Row(fixedItems, "Pasta Downloads", null, Toggle(S.ShowDownloads, v => S.ShowDownloads = v));
-        Row(fixedItems, "Lixeira no fim do Dock", null, Toggle(S.ShowRecycleBin, v => S.ShowRecycleBin = v));
+        Row(fixedItems, "Ícone do botão", "Uma imagem, ou um app para usar o ícone dele.", iconButtons, "\uEB9F");
+        Row(fixedItems, "Mostrar apps abertos", "Apps abertos que não estão fixados, depois de um separador.", Toggle(S.ShowOpenApps, v => S.ShowOpenApps = v), "\uE737");
+        Row(fixedItems, "Pasta Downloads", null, Toggle(S.ShowDownloads, v => S.ShowDownloads = v), "\uE896");
+        Row(fixedItems, "Lixeira no fim do Dock", null, Toggle(S.ShowRecycleBin, v => S.ShowRecycleBin = v), "\uE74D");
 
-        page.Children.Add(new TextBlock { Text = "Apps, pastas e arquivos", FontWeight = FontWeights.SemiBold, Margin = new Thickness(2, 14, 0, 6) });
-        var list = new ListBox { Height = 240, Background = Brushes.Transparent, ItemContainerStyle = (Style)Application.Current.Resources["AppRowItem"] };
-        list.SetResourceReference(BorderBrushProperty, "TileRimBrush");
+        page.Children.Add(SettingsKit.Section("Apps, pastas e arquivos"));
+        var list = new ListBox { Height = 240, BorderThickness = new Thickness(0), Padding = new Thickness(6), ItemContainerStyle = (Style)SettingsKit.Theme["ListRow"] };
+        list.SetResourceReference(BackgroundProperty, "SurfaceBrush");
+        ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
         void Fill()
         {
             list.Items.Clear();
@@ -425,7 +359,7 @@ public sealed class SettingsWindow : Window
                     path.VerticalAlignment = VerticalAlignment.Center;
                     row.Children.Add(path);
                 }
-                list.Items.Add(new ListBoxItem { Content = row, Tag = item, Focusable = true });
+                list.Items.Add(new ListBoxItem { Content = row, Tag = item });
             }
         }
         Fill();
@@ -448,7 +382,7 @@ public sealed class SettingsWindow : Window
             });
         }
 
-        var buttons = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+        var buttons = new WrapPanel { Margin = new Thickness(0, 12, 0, 0) };
         buttons.Children.Add(Btn("Adicionar app…", () =>
         {
             var dlg = new Microsoft.Win32.OpenFileDialog
@@ -500,64 +434,65 @@ public sealed class SettingsWindow : Window
 
     UIElement PanelPage()
     {
-        var page = Page("Central de Controle", "Rede, Bluetooth, brilho, som e energia num painel só.");
+        var page = Page("panel", "Central de Controle", "Rede, Bluetooth, brilho, som e energia num painel só.");
         var card = Card(page);
-        Row(card, "Atalho para abrir", "Clique e pressione as teclas. Backspace limpa.", HotkeyBox(S.ControlCenterHotkey, v => S.ControlCenterHotkey = v));
-        Row(card, "Bandeja: ícones na barra", "Os demais ficam na lista da seta da barra, com um alfinete para fixar.", Btn("Limpar fixados", () => { S.PinnedTray.Clear(); Commit(now: true); }));
+        HotkeyRow(card, S.ControlCenterHotkey, v => S.ControlCenterHotkey = v, () => App.ControlsHotkeyFree);
+        Row(card, "Ícones da bandeja fixados na barra", "Os demais ficam na lista da seta da barra.", Btn("Limpar fixados", () => { S.PinnedTray.Clear(); Commit(now: true); }), Glyph.Pin);
         return page;
     }
 
     UIElement AppsPage()
     {
-        var page = Page("Applications", "Busca rápida de todos os apps do Windows.");
+        var page = Page("apps", "Applications", "Busca rápida de todos os apps do Windows.");
         var card = Card(page);
-        Row(card, "Atalho para abrir", "Clique e pressione as teclas. Backspace limpa.", HotkeyBox(S.AppsHotkey, v => S.AppsHotkey = v));
-        Row(card, "Favoritos", "Clique com o botão direito num app da lista para favoritar.", Btn("Limpar", () => { S.AppsFavorites.Clear(); Commit(now: true); }));
-        Row(card, "Recentes", "Sobem na busca e aparecem primeiro na lista.", Btn("Limpar", () => { S.AppsRecent.Clear(); Commit(now: true); }));
+        HotkeyRow(card, S.AppsHotkey, v => S.AppsHotkey = v, () => App.AppsHotkeyFree);
+        Row(card, "Favoritos", "Botão direito num app da lista para favoritar.", Btn("Limpar", () => { S.AppsFavorites.Clear(); Commit(now: true); }), "\uE734");
+        Row(card, "Recentes", "Sobem na busca e aparecem primeiro na lista.", Btn("Limpar", () => { S.AppsRecent.Clear(); Commit(now: true); }), "\uE81C");
         return page;
     }
 
     UIElement MotionPage()
     {
-        var page = Page("Animações", "Como a barra, os painéis e o Dock se movem.");
+        var page = Page("motion", "Animações", "Como a barra, os painéis e o Dock se movem.");
         var card = Card(page);
-        Row(card, "Movimento", "Automático segue “Efeitos de animação” do Windows. Reduzido troca os movimentos por transições curtas.", Choice(new[]
+        Row(card, "Movimento", "Automático segue o Windows. Reduzido usa transições curtas.", Choice(new[]
         {
             (MotionMode.Auto, "Automático"), (MotionMode.Full, "Completo"), (MotionMode.Reduced, "Reduzido"),
-        }, S.Motion, v => S.Motion = v));
-        Row(card, "Velocidade", null, Slider(0.5, 2, S.MotionSpeed, 0.1, v => $"{v:0.0}×", v => S.MotionSpeed = v));
+        }, S.Motion, v => S.Motion = v), "\uE916");
+        Row(card, "Velocidade", null, Slider(0.5, 2, S.MotionSpeed, 0.1, v => $"{v:0.0}×", v => S.MotionSpeed = v), "\uEC4A");
         return page;
     }
 
     UIElement BehaviourPage()
     {
-        var page = Page("Comportamento", "Como o shft. convive com as janelas.");
+        var page = Page("behaviour", "Comportamento", "Como o shft. convive com as janelas.");
         var behaviour = Card(page);
-        Row(behaviour, "Manter as janelas fora do Dock", "Janelas maximizadas param acima dele.", Toggle(S.ReserveSpace, v => S.ReserveSpace = v));
-        Row(behaviour, "Ocultar o Dock automaticamente", "Ele aparece quando o ponteiro encosta na borda da tela.", Toggle(S.AutoHide, v => S.AutoHide = v));
-        Row(behaviour, "Atraso para mostrar", null, Slider(0, 1000, S.AutoHideDelayMs, 50, v => $"{v:0} ms", v => S.AutoHideDelayMs = (int)v));
-        Row(behaviour, "Esconder com app em tela cheia", "Jogos e vídeos ficam sozinhos na tela; os temporizadores da barra descansam.", Toggle(S.HideOnFullScreen, v => S.HideOnFullScreen = v));
+        Row(behaviour, "Manter as janelas fora do Dock", "Janelas maximizadas param acima dele.", Toggle(S.ReserveSpace, v => S.ReserveSpace = v), "\uE8A0");
+        Row(behaviour, "Ocultar o Dock automaticamente", "Ele aparece quando o ponteiro encosta na borda da tela.", SettingsKit.Toggle(S.AutoHide, v => { S.AutoHide = v; CommitAndRefresh(); }), "\uE7C4");
+        var delay = Row(behaviour, "Atraso para mostrar", null, Slider(0, 1000, S.AutoHideDelayMs, 50, v => $"{v:0} ms", v => S.AutoHideDelayMs = (int)v), "\uE823");
+        if (!S.AutoHide) SettingsKit.Unavailable(delay, "Disponível com o ocultar automático ligado.");
+        Row(behaviour, "Esconder com app em tela cheia", "Jogos e vídeos ficam sozinhos na tela.", Toggle(S.HideOnFullScreen, v => S.HideOnFullScreen = v), "\uE740");
         return page;
     }
 
     UIElement SystemPage()
     {
-        var page = Page("Inicialização e sistema", "O que o shft. muda no Windows e desfaz ao sair.");
+        var page = Page("system", "Inicialização e sistema", "O que o shft. muda no Windows e desfaz ao sair.");
         var card = Card(page);
-        Row(card, "Abrir o shft. quando o Windows iniciar", null, Toggle(S.StartWithWindows, v => S.StartWithWindows = v));
+        Row(card, "Abrir o shft. quando o Windows iniciar", null, Toggle(S.StartWithWindows, v => S.StartWithWindows = v), Glyph.Power);
         Row(card, "Barra de tarefas do Windows", "Ela volta como era quando você encerra o shft.", Choice(new[]
         {
             (TaskbarMode.Keep, "Deixar visível"), (TaskbarMode.AutoHide, "Ocultar automaticamente"), (TaskbarMode.Hide, "Ocultar por completo"),
-        }, S.Taskbar, v => S.Taskbar = v));
+        }, S.Taskbar, v => S.Taskbar = v), "\uE75B");
         return page;
     }
 
     UIElement WidgetsPage()
     {
-        var page = Page("Widgets", "Tiles vivos no Dock. Clique num widget para usá-lo; o botão direito traz as opções dele.");
+        var page = Page("widgets", "Widgets", "Tiles vivos no Dock. Clique para usar; o botão direito traz as opções.");
 
         var options = Card(page, "Ajustes");
-        Row(options, "Largura dos tiles", "Em tamanhos de ícone.", Slider(1.2, 3, S.TileWidth, 0.1, v => $"{v:0.0}×", v => S.TileWidth = v));
+        Row(options, "Largura dos tiles", "Em tamanhos de ícone.", Slider(1.2, 3, S.TileWidth, 0.1, v => $"{v:0.0}×", v => S.TileWidth = v), "\uE7C2");
         var cityText = new TextBlock { Text = string.IsNullOrEmpty(S.WeatherCity) ? "Nenhuma" : S.WeatherCity, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
         var cityPanel = new StackPanel { Orientation = Orientation.Horizontal };
         cityPanel.Children.Add(cityText);
@@ -571,8 +506,8 @@ public sealed class SettingsWindow : Window
             cityText.Text = place.Name;
             SettingsStore.Save();
         }));
-        Row(options, "Cidade do clima", "Previsão do Open-Meteo; só as coordenadas da cidade são enviadas.", cityPanel);
-        Row(options, "Temperatura em Fahrenheit", null, Toggle(S.Fahrenheit, v => S.Fahrenheit = v));
+        Row(options, "Cidade do clima", "Previsão do Open-Meteo; só as coordenadas são enviadas.", cityPanel, "\uE753");
+        Row(options, "Temperatura em Fahrenheit", null, Toggle(S.Fahrenheit, v => S.Fahrenheit = v), "\uE9CA");
 
         var current = Card(page, "No seu Dock");
         void FillCurrent()
@@ -631,15 +566,18 @@ public sealed class SettingsWindow : Window
 
     UIElement AboutPage()
     {
-        var page = Page("Sobre");
+        var page = Page("about", "Sobre", "Versão, créditos e dados do app.");
         var card = Card(page);
         var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
-        card.Children.Add(new TextBlock { Text = $"shft. {version}", FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 4) });
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 16, 0, 8) };
+        brand.Children.Add(SettingsKit.Symbol(28));
+        brand.Children.Add(new TextBlock { Text = $"shft. {version}", FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+        card.Children.Add(brand);
         var about = Muted("Barra, Dock, Central de Controle e Applications num só app nativo. O Dock é uma reimplementação independente, feita a partir do comportamento observado do PrimoDock 0.6.0-beta. " +
-                          "A experiência da barra se inspira no Seelen UI; nenhum código dos dois foi copiado.");
-        about.Margin = new Thickness(0, 0, 0, 10);
+                          "A experiência da barra se inspira no Seelen UI; nenhum código dos dois foi copiado.", 13);
+        about.Margin = new Thickness(0, 0, 0, 12);
         card.Children.Add(about);
-        var buttons = new WrapPanel { Margin = new Thickness(0, 0, 0, 10) };
+        var buttons = new WrapPanel { Margin = new Thickness(0, 0, 0, 16) };
         buttons.Children.Add(Btn("Abrir pasta de dados", () =>
         {
             Directory.CreateDirectory(SettingsStore.DataFolder);

@@ -35,6 +35,7 @@ public static class Glyph
 public sealed class CapsuleSlider : Grid
 {
     readonly Border _fill;
+    readonly Border? _knob;
     readonly TextBlock? _icon;
     readonly bool _thin;
     double _value;
@@ -65,6 +66,13 @@ public sealed class CapsuleSlider : Grid
         };
         _fill.SetResourceReference(Border.BackgroundProperty, "TileOnBrush");
         Children.Add(_fill);
+
+        if (thin)
+        {
+            _knob = new Border { Width = 14, Height = 14, CornerRadius = new CornerRadius(7), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
+            _knob.SetResourceReference(Border.BackgroundProperty, "TextBrush");
+            Children.Add(_knob);
+        }
 
         if (glyph != null)
         {
@@ -99,6 +107,7 @@ public sealed class CapsuleSlider : Grid
     {
         double min = _thin ? 6 : Height;
         double w = Math.Max(min, min + (ActualWidth - min) * _value);
+        if (_knob != null) _knob.Margin = new Thickness(Math.Max(0, (ActualWidth - 14) * _value), 0, 0, 0);
         if (animate && IsLoaded) _fill.BeginAnimation(WidthProperty, new DoubleAnimation(w, Motion.Time(140)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
         else
         {
