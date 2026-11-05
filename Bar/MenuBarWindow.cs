@@ -71,7 +71,7 @@ public sealed class MenuBarWindow : Window
     GlyphView _bell = null!, _volume = null!, _net = null!, _bt = null!;
     Border _bellDot = null!;
     Button _userButton = null!, _appButton = null!, _memoryButton = null!, _btButton = null!;
-    StackPanel _appMenus = null!, _tray = null!;
+    StackPanel _appMenus = null!;
     FrameworkElement _logo = null!;
     Button _controls = null!;
 
@@ -155,16 +155,8 @@ public sealed class MenuBarWindow : Window
         _memoryButton = Item(_right, ram, "Memória", () => _ = _hub.PurgeMemory());
         _memoryButton.ToolTip = "Clique para liberar a RAM ociosa";
 
-        _tray = new StackPanel { Orientation = Orientation.Horizontal };
-        _trayDrag = new BarDrag(_tray);
-        _trayDrag.Moved += SavePinOrder;
-        var trayGroup = new StackPanel { Orientation = Orientation.Horizontal };
-        trayGroup.Children.Add(_tray);
         Button? trayButton = null;
         trayButton = PanelItem(Glyph.Text(Glyph.Down, 11), "Apps em segundo plano", () => Panel("tray", () => new TrayPanel(), trayButton!));
-        _right.Items.Children.Remove(trayButton);
-        trayGroup.Children.Add(trayButton);
-        _right.Items.Children.Add(trayGroup);
 
         _net = Glyph.Text(Glyph.Ethernet, 14);
         var network = PanelItem(_net, "Rede", () => Panel("network", () => new ControlCenterWindow("network"), _controls));
@@ -193,40 +185,40 @@ public sealed class MenuBarWindow : Window
 
         _slots = new Dictionary<string, FrameworkElement>
         {
-            ["memory"] = _memoryButton, ["tray"] = trayGroup, ["network"] = network, ["bluetooth"] = _btButton,
+            ["memory"] = _memoryButton, ["tray"] = trayButton, ["network"] = network, ["bluetooth"] = _btButton,
             ["volume"] = volume, ["bell"] = bellButton, ["controls"] = _controls, ["clock"] = clock,
         };
         _drag = new BarDrag(_right.Items);
-        foreach (var slot in _slots.Values) _drag.Attach(slot == trayGroup ? trayButton : slot, slot);
-        foreach (var drag in new[] { _drag, _trayDrag })
+        foreach (var slot in _slots.Values) _drag.Attach(slot, slot);
+        _drag.Started += () =>
         {
-            drag.Started += () =>
-            {
-                _keyAtPress = null;
-                _open?.SafeClose();
-                _open = null;
-            };
-        }
+            _keyAtPress = null;
+            _open?.SafeClose();
+            _open = null;
+        };
         _drag.Moved += SaveOrder;
+        _drag.Ended += () =>
+        {
+            if (!_trayChanged) return;
+            _trayChanged = false;
+            OnTray();
+        };
     }
 
     void SaveOrder()
     {
-        SettingsStore.Current.TopBarOrder = _right.Items.Children.OfType<FrameworkElement>().Select(c => _slots.First(s => s.Value == c).Key).ToList();
-        SettingsStore.Save();
-    }
-
-    void SavePinOrder()
-    {
-        var pins = SettingsStore.Current.PinnedTray;
-        var shown = _tray.Children.OfType<Button>().Select(b => (string)b.Tag).Distinct().ToList();
-        SettingsStore.Current.PinnedTray = shown.Concat(pins.Where(p => !shown.Contains(p))).ToList();
+        var s = SettingsStore.Current;
+        var shown = _right.Items.Children.OfType<FrameworkElement>().Select(c => _slots.First(x => x.Value == c).Key).ToList();
+        // A pinned app that is closed right now keeps its place in the list for when it comes back.
+        s.TopBarOrder = shown.Concat(s.TopBarOrder.Where(k => k.StartsWith("pin:", StringComparison.Ordinal) && !shown.Contains(k))).ToList();
         SettingsStore.Save();
     }
 
     void ApplyOrder()
     {
-        var order = BarOrder.Arrange(BarOrder.Default, SettingsStore.Current.TopBarOrder).Select(k => _slots[k]).ToList();
+        if (_drag.IsDragging) return; // the item in the pointer's hand must stay where the drag put it
+        var pins = _slots.Keys.Where(k => k.StartsWith("pin:", StringComparison.Ordinal));
+        var order = BarOrder.Arrange(BarOrder.WithPins(BarOrder.Default, pins), SettingsStore.Current.TopBarOrder).Select(k => _slots[k]).ToList();
         if (_right.Items.Children.OfType<FrameworkElement>().SequenceEqual(order)) return;
         _right.Items.Children.Clear();
         foreach (var item in order) _right.Items.Children.Add(item);
@@ -246,7 +238,8 @@ public sealed class MenuBarWindow : Window
 
     FlyoutWindow? _open;
     string? _openKey, _keyAtPress;
-    BarDrag _drag = null!, _trayDrag = null!;
+    BarDrag _drag = null!;
+    bool _trayChanged;
     Dictionary<string, FrameworkElement> _slots = null!;
 
     /// <summary>Opens a panel under the bar; the same button again closes it.</summary>
@@ -405,7 +398,6 @@ public sealed class MenuBarWindow : Window
         _memoryButton.Visibility = s.TopBarShowMemory ? Visibility.Visible : Visibility.Collapsed;
         foreach (var t in new[] { _user, _app, _memory, _clock }) t.Foreground = t == _user || t == _app ? _left.Text : _right.Text;
         SetLogo(s);
-        ApplyOrder();
         Place();
         OnData();
         OnClock();
@@ -532,8 +524,14 @@ public sealed class MenuBarWindow : Window
 
     public void OnTray()
     {
-        _tray.Children.Clear();
+        if (_drag.IsDragging)
+        {
+            _trayChanged = true; // a tray icon can change at any moment; never rebuild under the pointer
+            return;
+        }
+        foreach (var key in _slots.Keys.Where(k => k.StartsWith("pin:", StringComparison.Ordinal)).ToList()) _slots.Remove(key);
         var pins = SettingsStore.Current.PinnedTray;
+        var seen = new Dictionary<string, int>();
         foreach (var e in TrayHost.Instance.Items.Where(i => pins.Contains(i.PinKey)).OrderBy(i => pins.IndexOf(i.PinKey)))
         {
             var entry = e;
@@ -544,11 +542,13 @@ public sealed class MenuBarWindow : Window
             b.VerticalAlignment = VerticalAlignment.Center;
             b.ToolTip = e.Tip.Length > 0 ? e.Tip : e.Name;
             AutomationProperties.SetName(b, e.Name);
-            b.Tag = e.PinKey;
             b.MouseRightButtonUp += (_, ev) => { ev.Handled = true; TrayHost.Instance.Click(entry, right: true); };
-            _trayDrag.Attach(b, b);
-            _tray.Children.Add(b);
+            _drag.Attach(b, b);
+            // One app can pin several icons; the number keeps each one's place.
+            seen[e.PinKey] = seen.GetValueOrDefault(e.PinKey) + 1;
+            _slots[$"pin:{e.PinKey}#{seen[e.PinKey]}"] = b;
         }
+        ApplyOrder();
     }
 
     // ---------------------------------------------------------------- adaptive colour

@@ -244,7 +244,7 @@ public sealed class SettingsWindow : Window
         Row(content, "Logo", "Também dá para trocar com o botão direito na logo.", logo, "\uEB9F");
         Row(content, "Pintar a logo com a cor do texto", "Para logos de uma cor só, como a da Apple.", Toggle(S.TopBarLogoTint, v => S.TopBarLogoTint = v), "\uE790");
         Row(content, "Nome", "Vazio usa o nome do Windows.", Field(S.TopBarUserName, v => S.TopBarUserName = v), "\uE77B");
-        Row(content, "Ordem dos ícones", "Arraste os ícones na própria barra para reorganizar.", Btn("Restaurar", () =>
+        Row(content, "Ordem dos ícones", "Arraste os ícones na própria barra, inclusive os de apps fixados.", Btn("Restaurar", () =>
         {
             S.TopBarOrder.Clear();
             Commit(now: true);

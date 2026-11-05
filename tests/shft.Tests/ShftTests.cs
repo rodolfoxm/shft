@@ -130,7 +130,7 @@ public class BarDragTests
         var host = new System.Windows.Controls.StackPanel();
         var button = new System.Windows.Controls.Button();
         host.Children.Add(button);
-        var drag = new BarDrag(host);
+        var drag = new BarDrag(host) { TakeMouse = () => true };
 
         drag.Begin(button);
         LoseCapture(button);
@@ -140,6 +140,44 @@ public class BarDragTests
         Assert.False(drag.IsDragging);
         Assert.Equal(1, button.Opacity);
     });
+}
+
+public class BarDragStuckTests
+{
+    [Fact]
+    public void A_drag_that_cannot_take_the_mouse_never_stays_on()
+    {
+        Exception? failure = null;
+        var t = new Thread(() =>
+        {
+            try
+            {
+                var host = new System.Windows.Controls.StackPanel();
+                var button = new System.Windows.Controls.Button();
+                host.Children.Add(button);
+                var drag = new BarDrag(host) { TakeMouse = () => false };
+                drag.Begin(button);
+                Assert.False(drag.IsDragging);
+                Assert.Equal(1, button.Opacity);
+            }
+            catch (Exception ex) { failure = ex; }
+        });
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        t.Join();
+        if (failure != null) throw failure;
+    }
+
+    [Fact]
+    public void Tray_icons_join_the_bar_before_the_arrow() =>
+        Assert.Equal(new[] { "memory", "pin:a", "pin:b", "tray", "network" }, BarOrder.WithPins(new[] { "memory", "tray", "network" }, new[] { "pin:a", "pin:b" }));
+
+    [Fact]
+    public void A_tray_icon_new_to_the_saved_order_stays_by_the_memory()
+    {
+        var defaults = BarOrder.WithPins(BarOrder.Default, new[] { "pin:a" });
+        Assert.Equal(new[] { "clock", "memory", "pin:a", "tray" }, BarOrder.Arrange(defaults, new[] { "clock", "memory", "tray" }).Take(4));
+    }
 }
 
 public class WinTapTests

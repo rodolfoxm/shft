@@ -24,6 +24,14 @@ public static class BarOrder
         return result;
     }
 
+    /// <summary>The default order with the pinned tray icons, which come right before the tray arrow.</summary>
+    public static List<string> WithPins(IEnumerable<string> defaults, IEnumerable<string> pins)
+    {
+        var list = defaults.ToList();
+        list.InsertRange(list.IndexOf("tray"), pins);
+        return list;
+    }
+
     /// <summary>Where a dragged item lands: how many of the other items' centres lie left of the pointer.</summary>
     public static int Target(IEnumerable<double> centers, double x) => centers.Count(c => c < x);
 }
@@ -44,12 +52,22 @@ public sealed class BarDrag
     /// <summary>The item was dropped in a new place.</summary>
     public event Action? Moved;
 
+    /// <summary>The drag is over, moved or not.</summary>
+    public event Action? Ended;
+
     public BarDrag(Panel host)
     {
         _host = host;
+        TakeMouse = host.CaptureMouse;
         host.MouseMove += (_, e) =>
         {
-            if (_active) Follow(e.GetPosition(_host).X);
+            if (!_active) return;
+            if (e.LeftButton == MouseButtonState.Pressed) Follow(e.GetPosition(_host).X);
+            else
+            {
+                _host.ReleaseMouseCapture();
+                End();
+            }
         };
         host.MouseLeftButtonUp += (_, _) => host.ReleaseMouseCapture();
         host.LostMouseCapture += (_, e) =>
@@ -64,6 +82,7 @@ public sealed class BarDrag
     {
         handle.PreviewMouseLeftButtonDown += (_, e) =>
         {
+            End(); // a new press always starts clean
             _item = item;
             _start = e.GetPosition(_host);
         };
@@ -81,6 +100,8 @@ public sealed class BarDrag
 
     internal bool IsDragging => _active;
 
+    internal Func<bool> TakeMouse { get; set; }
+
     internal void Begin(FrameworkElement item)
     {
         _item = item;
@@ -88,7 +109,9 @@ public sealed class BarDrag
         _moved = false;
         item.Opacity = 0.55;
         Started?.Invoke();
-        _host.CaptureMouse(); // taking the capture from the button is what cancels its click
+        // Taking the capture from the button is what cancels its click. A quick flick can release the button first:
+        // without the capture nothing would ever report the end, and the bar would stay stuck in a drag.
+        if (!TakeMouse()) End();
     }
 
     bool _moved;
@@ -111,5 +134,6 @@ public sealed class BarDrag
         if (_item != null) _item.Opacity = 1;
         _item = null;
         if (_moved) Moved?.Invoke();
+        Ended?.Invoke();
     }
 }
