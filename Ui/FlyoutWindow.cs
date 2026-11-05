@@ -18,6 +18,11 @@ public class FlyoutWindow : Window
 {
     public static int OpenCount { get; private set; }
 
+    static WeakReference<FrameworkElement>? _lastAnchor;
+    static DateTime _lastClosed;
+    bool _counted;
+    FrameworkElement? _anchor;
+
     protected readonly Border Frame;
     readonly Grid _layers;
     readonly Border _glass = new(); // a brush, not an Image: a stretched Image would grow a size-to-content window to the screen
@@ -63,10 +68,19 @@ public class FlyoutWindow : Window
         {
             if (e.Key == System.Windows.Input.Key.Escape) SafeClose();
         };
-        Loaded += (_, _) => OpenCount++;
+        Loaded += (_, _) =>
+        {
+            OpenCount++;
+            _counted = true;
+        };
         Closed += (_, _) =>
         {
-            OpenCount = Math.Max(0, OpenCount - 1);
+            if (_counted) OpenCount = Math.Max(0, OpenCount - 1);
+            if (_anchor != null)
+            {
+                _lastAnchor = new WeakReference<FrameworkElement>(_anchor);
+                _lastClosed = DateTime.UtcNow;
+            }
             _glass.Background = null;
             MemoryTrim.Soon(Dispatcher);
         };
@@ -94,6 +108,13 @@ public class FlyoutWindow : Window
     /// <summary>Opens beside <paramref name="anchor"/>; <paramref name="edge"/> is the screen edge it hangs from (the Dock's by default).</summary>
     public void ShowNear(FrameworkElement anchor, DockEdge? edge = null)
     {
+        // A Dock tile clicked with its panel open: the press already closed it, so the click must not reopen it.
+        if (edge == null && _lastAnchor?.TryGetTarget(out var last) == true && last == anchor && (DateTime.UtcNow - _lastClosed).TotalMilliseconds < 350)
+        {
+            Close();
+            return;
+        }
+        _anchor = anchor;
         var side = edge ?? SettingsStore.Current.Edge;
         _origin = side switch
         {

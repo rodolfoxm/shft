@@ -67,7 +67,8 @@ public sealed class MenuBarWindow : Window
     IntPtr _hwnd;
     RECT _rect;
 
-    TextBlock _user = null!, _app = null!, _memory = null!, _clock = null!, _bell = null!, _volume = null!, _net = null!, _bt = null!;
+    TextBlock _user = null!, _app = null!, _memory = null!, _clock = null!;
+    GlyphView _bell = null!, _volume = null!, _net = null!, _bt = null!;
     Border _bellDot = null!;
     Button _userButton = null!, _appButton = null!, _memoryButton = null!, _btButton = null!;
     StackPanel _appMenus = null!, _tray = null!;
@@ -142,24 +143,29 @@ public sealed class MenuBarWindow : Window
         _left.Items.Children.Add(_appMenus);
     }
 
+    /// <summary>Left to right: what is running, then connections, then panels, then the time, as on macOS.</summary>
     void BuildRight()
     {
         _memory = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 12.5, FontWeight = FontWeights.SemiBold };
         var ram = new StackPanel { Orientation = Orientation.Horizontal };
-        ram.Children.Add(new TextBlock { Text = Glyph.Memory, FontFamily = Glyph.Font, FontSize = 13, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) });
+        var chip = Glyph.Text(Glyph.Memory, 13);
+        chip.Margin = new Thickness(0, 0, 5, 0);
+        ram.Children.Add(chip);
         ram.Children.Add(_memory);
         _memoryButton = Item(_right, ram, "Memória", () => _ = _hub.PurgeMemory());
         _memoryButton.ToolTip = "Clique para liberar a RAM ociosa";
 
         _tray = new StackPanel { Orientation = Orientation.Horizontal };
         _right.Items.Children.Add(_tray);
+        Button? trayButton = null;
+        trayButton = PanelItem(Glyph.Text(Glyph.Down, 11), "Apps em segundo plano", () => Panel("tray", () => new TrayPanel(), trayButton!));
 
-        _bt = Glyph.Text(Glyph.Bluetooth, 14);
-        _btButton = Item(_right, _bt, "Bluetooth", () => Panel("bluetooth", () => new ControlCenterWindow("bluetooth"), _controls));
         _net = Glyph.Text(Glyph.Ethernet, 14);
-        Item(_right, _net, "Rede", () => Panel("network", () => new ControlCenterWindow("network"), _controls));
+        PanelItem(_net, "Rede", () => Panel("network", () => new ControlCenterWindow("network"), _controls));
+        _bt = Glyph.Text(Glyph.Bluetooth, 14);
+        _btButton = PanelItem(_bt, "Bluetooth", () => Panel("bluetooth", () => new ControlCenterWindow("bluetooth"), _controls));
         _volume = Glyph.Text(Glyph.Volume, 14);
-        var volume = Item(_right, _volume, "Volume", () => Panel("output", () => new ControlCenterWindow("output"), _controls));
+        var volume = PanelItem(_volume, "Volume", () => Panel("output", () => new ControlCenterWindow("output"), _controls));
         volume.MouseWheel += (_, e) =>
         {
             var audio = AudioService.Instance;
@@ -173,13 +179,22 @@ public sealed class MenuBarWindow : Window
         bell.Children.Add(_bell);
         bell.Children.Add(_bellDot);
         Button? bellButton = null;
-        bellButton = Item(_right, bell, "Notificações", () => Panel("bell", () => new NotificationsPanel(), bellButton!));
-        Button? trayButton = null;
-        trayButton = Item(_right, Glyph.Text(Glyph.Up, 12), "Bandeja do sistema", () => Panel("tray", () => new TrayPanel(), trayButton!));
-        _controls = Item(_right, Glyph.Text(Glyph.Controls, 14), "Central de Controle", ToggleControlCenter);
+        bellButton = PanelItem(bell, "Notificações", () => Panel("bell", () => new NotificationsPanel(), bellButton!));
+        _controls = PanelItem(Glyph.Text(Glyph.Controls, 15), "Central de Controle", ToggleControlCenter);
         _clock = new TextBlock { FontWeight = FontWeights.SemiBold, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center };
         Button? clock = null;
-        clock = Item(_right, _clock, "Calendário", () => Panel("clock", () => new CalendarPanel(), clock!));
+        clock = PanelItem(_clock, "Calendário", () => Panel("clock", () => new CalendarPanel(), clock!));
+    }
+
+    /// <summary>
+    /// A bar item that toggles a panel. It acts on the press: by the release, losing focus may have closed the panel
+    /// already, and the click would read as a request to open it again.
+    /// </summary>
+    Button PanelItem(object content, string name, Action click)
+    {
+        var b = Item(_right, content, name, click);
+        b.ClickMode = ClickMode.Press;
+        return b;
     }
 
     FlyoutWindow? _open;

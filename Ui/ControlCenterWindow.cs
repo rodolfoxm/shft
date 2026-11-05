@@ -153,7 +153,8 @@ public sealed class ControlCenterWindow : FlyoutWindow
     static GlobalSystemMediaTransportControlsSessionManager? _manager;
 
     Image _art = null!;
-    TextBlock _track = null!, _artist = null!, _playGlyph = null!;
+    TextBlock _track = null!, _artist = null!;
+    GlyphView _playGlyph = null!;
     GlobalSystemMediaTransportControlsSession? _session;
     string? _shownTrack;
 
@@ -358,7 +359,7 @@ public sealed class ControlCenterWindow : FlyoutWindow
         AutomationProperties.SetName(more, "Escolher dispositivo de " + title);
         DockPanel.SetDock(more, System.Windows.Controls.Dock.Right);
         var mute = FlatButton(Glyph.Text(on, 12), () => _audio.SetMuted(flow, !_audio.Muted(flow)), 5);
-        var muteIcon = (TextBlock)mute.Content;
+        var muteIcon = (GlyphView)mute.Content;
         AutomationProperties.SetName(mute, "Silenciar " + title);
         DockPanel.SetDock(mute, System.Windows.Controls.Dock.Right);
         var name = Label(title);

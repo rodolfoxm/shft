@@ -130,6 +130,7 @@ public static class AppSearch
 public sealed class SpotlightWindow : FlyoutWindow
 {
     static SpotlightWindow? _open;
+    static DateTime _closedAt;
 
     readonly TextBox _search;
     readonly ListBox _list;
@@ -142,9 +143,15 @@ public sealed class SpotlightWindow : FlyoutWindow
             _open.SafeClose();
             return;
         }
+        // Clicking the Dock button closes the window on press; the release that follows must not reopen it.
+        if ((DateTime.UtcNow - _closedAt).TotalMilliseconds < 350) return;
         AppCatalog.Refresh();
         _open = new SpotlightWindow();
-        _open.Closed += (_, _) => _open = null;
+        _open.Closed += (_, _) =>
+        {
+            _open = null;
+            _closedAt = DateTime.UtcNow;
+        };
         var target = monitor ?? Monitors.ForWindow(Win32.GetForegroundWindow());
         _open.ShowCentered(target);
         Win32.Activate(new System.Windows.Interop.WindowInteropHelper(_open).Handle);
@@ -320,7 +327,7 @@ public sealed class SpotlightWindow : FlyoutWindow
         readonly Image _icon = new() { Width = 32, Height = 32, Margin = new Thickness(0, 0, 12, 0) };
         readonly TextBlock _name = new() { FontSize = 14, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         readonly TextBlock _detail = new() { FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 4, 0) };
-        readonly TextBlock _star = Glyph.Text("\uE735", 11);
+        readonly GlyphView _star = Glyph.Text("\uE735", 11);
 
         public AppRow()
         {

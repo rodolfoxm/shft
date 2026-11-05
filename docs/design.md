@@ -23,7 +23,7 @@ Os valores de cor ficam nesses arquivos; este documento não os repete. Padrões
 ## Linguagem compartilhada
 
 - **Cor:** tudo vem de `Theme`; `App.ApplyTheme` publica `TextBrush`, `TextSubtleBrush`, `TileBrush`, `TileHoverBrush`, `TileOnBrush`, `TileOnTextBrush`, `TileRimBrush` e `PanelTintBrush`.
-- **Ícones:** Segoe Fluent Icons, em `Ui/GlassControls.cs` (`Glyph`).
+- **Ícones:** conjunto vetorial próprio em `Ui/GlyphView.cs`, com a linguagem visual do macOS. Não usar SF Symbols: a licença da Apple os limita a plataformas Apple. Códigos fora do conjunto, e a janela de Configurações, usam Segoe Fluent Icons.
 - **Controles:** `CapsuleSlider`, `ControlTile` (desligado, ligado, passando o mouse, foco, indisponível, aguardando), `SwitchToggle`, em `Ui/GlassControls.cs`.
 - **Movimento:** `Core/Motion.cs`. Abrir: opacidade em 130 ms e mola em escala e posição em 300 ms. Fechar: 100 ms. Pressionar: escala de 0,95. A preferência fica em Configurações > Animações; Automático segue "Efeitos de animação" do Windows, e Reduzido troca tudo por transições curtas.
 - **Painéis:** cartão com raio de 18 a 26, foto desfocada do fundo com saturação 1,35, tinta do tema e borda Liquid Glass. Sem foto possível, cartão quase opaco.

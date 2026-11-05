@@ -15,17 +15,14 @@ public static class Glyph
 {
     public const string Bluetooth = "", Wifi = "", Ethernet = "", Offline = "", Bell = "", Volume = "", Mute = "",
         Mic = "", MicOff = "", Sun = "", Moon = "", Settings = "", Power = "", Chevron = "", Back = "",
-        Up = "", Controls = "", Memory = "", Hdr = "", Eye = "", Search = "", Pin = "", Unpin = "",
+        Up = "", Down = "", Controls = "", Memory = "", Hdr = "", Eye = "", Search = "", Pin = "", Unpin = "",
         Play = "", Pause = "", Prev = "", Next = "", Lock = "", Restart = "", SignOut = "", Today = "",
         Check = "", Battery = "", Charging = "", Close = "", Apps = "";
 
     public static readonly FontFamily Font = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
-    public static TextBlock Text(string code, double size = 15) => new()
+    public static GlyphView Text(string code, double size = 15) => new(code, size)
     {
-        Text = code,
-        FontFamily = Font,
-        FontSize = size,
         VerticalAlignment = VerticalAlignment.Center,
         HorizontalAlignment = HorizontalAlignment.Center,
     };
@@ -36,7 +33,7 @@ public sealed class CapsuleSlider : Grid
 {
     readonly Border _fill;
     readonly Border? _knob;
-    readonly TextBlock? _icon;
+    readonly GlyphView? _icon;
     readonly bool _thin;
     double _value;
     bool _dragging;
@@ -78,7 +75,7 @@ public sealed class CapsuleSlider : Grid
         {
             _icon = Glyph.Text(glyph, 13);
             _icon.HorizontalAlignment = HorizontalAlignment.Left;
-            _icon.Margin = new Thickness((height - 13) / 2, 0, 0, 0);
+            _icon.Margin = new Thickness((height - _icon.Width) / 2, 0, 0, 0);
             _icon.IsHitTestVisible = false;
             _icon.SetResourceReference(TextBlock.ForegroundProperty, "TileOnTextBrush");
             Children.Add(_icon);
@@ -170,7 +167,7 @@ public sealed class CapsuleSlider : Grid
 public sealed class ControlTile : Button
 {
     readonly Border _circle = new() { CornerRadius = new CornerRadius(100) };
-    readonly TextBlock _icon;
+    readonly GlyphView _icon;
     readonly TextBlock _title, _detail;
     bool _on, _busy;
 
