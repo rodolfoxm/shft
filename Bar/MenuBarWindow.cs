@@ -22,7 +22,6 @@ public sealed class MenuBarWindow : Window
     sealed class Zone
     {
         public readonly SolidColorBrush Text = new(Colors.White);
-        public readonly SolidColorBrush Hover = new(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF));
         public readonly StackPanel Items = new() { Orientation = Orientation.Horizontal };
         public readonly Border Host = new() { CornerRadius = new CornerRadius(10), Padding = new Thickness(4, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center, BorderThickness = new Thickness(0) };
         public readonly SolidColorBrush Scrim = new(Colors.Transparent);
@@ -32,7 +31,6 @@ public sealed class MenuBarWindow : Window
         {
             Host.Child = Items;
             Host.Background = Scrim;
-            Items.Resources["MenuHoverBrush"] = Hover;
         }
 
         public void Paint(bool darkText, bool scrim, bool animate)
@@ -53,7 +51,8 @@ public sealed class MenuBarWindow : Window
                 Text.Color = c;
                 Scrim.Color = layer;
             }
-            Hover.Color = hover;
+            // Replaced, never changed: WPF freezes a brush once a template trigger has used it.
+            Items.Resources["MenuHoverBrush"] = Theme.Brush(hover);
             Dark = darkText;
         }
     }
@@ -322,8 +321,6 @@ public sealed class MenuBarWindow : Window
         if (_hwnd == IntPtr.Zero) return;
         var s = SettingsStore.Current;
         var theme = Theme.Resolve(s);
-        Resources["TextBrush"] = _right.Text; // panels aside, anything hosted here follows the zone colour
-
         byte alpha = (byte)Math.Round(Math.Clamp(s.TopBarOpacity, 0, 1) * 255);
         var fill = s.TopBarStyle switch
         {

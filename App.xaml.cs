@@ -106,7 +106,14 @@ public partial class App : Application
     void OnSettingsChanged()
     {
         _dock?.Controller.ApplySettings();
-        _bars?.Apply();
+        try
+        {
+            _bars?.Apply();
+        }
+        catch (Exception ex)
+        {
+            Log.Write("top bar not updated: " + ex); // hotkeys, startup and the taskbar below must still apply
+        }
         ApplySystemSettings();
     }
 
