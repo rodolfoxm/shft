@@ -12,7 +12,7 @@
     <RootNamespace>Shft</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\shft.ico</ApplicationIcon>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <StartupObject>Shft.Program</StartupObject>
     <!-- Lower memory: workstation GC that compacts more eagerly, no background GC thread. -->
     <ServerGarbageCollection>false</ServerGarbageCollection>
