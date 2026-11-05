@@ -44,7 +44,7 @@ public sealed class AppBar : IDisposable
         {
             var data = Data();
             data.uCallbackMessage = _callback;
-            _registered = Win32.SHAppBarMessage(Win32.ABM_NEW, ref data) != UIntPtr.Zero;
+            _registered = Win32.AppBarMessage(Win32.ABM_NEW, ref data) != UIntPtr.Zero;
             Log.Write("app bar: registered -> " + _registered);
         }
 
@@ -62,7 +62,7 @@ public sealed class AppBar : IDisposable
         var abd = Data();
         abd.uEdge = _edge;
         abd.rc = rc;
-        Win32.SHAppBarMessage(Win32.ABM_QUERYPOS, ref abd);
+        Win32.AppBarMessage(Win32.ABM_QUERYPOS, ref abd);
 
         // The shell may move the strip off other app bars (a visible taskbar); keep our thickness.
         switch (edge)
@@ -75,7 +75,7 @@ public sealed class AppBar : IDisposable
         // SETPOS notifies every other app bar; repeating an unchanged one would make the bar and the Dock
         // answer each other forever.
         if (known && abd.rc.Equals(Reserved)) return Reserved;
-        Win32.SHAppBarMessage(Win32.ABM_SETPOS, ref abd);
+        Win32.AppBarMessage(Win32.ABM_SETPOS, ref abd);
         Reserved = abd.rc;
         return abd.rc;
     }
@@ -84,7 +84,7 @@ public sealed class AppBar : IDisposable
     {
         if (!_registered) return;
         var data = Data();
-        Win32.SHAppBarMessage(Win32.ABM_REMOVE, ref data);
+        Win32.AppBarMessage(Win32.ABM_REMOVE, ref data);
         _registered = false;
         Reserved = default;
         Log.Write("app bar: released");

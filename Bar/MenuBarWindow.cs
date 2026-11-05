@@ -402,6 +402,20 @@ public sealed class MenuBarWindow : Window
         else _backdrop.Conceal();
     }
 
+    /// <summary>
+    /// Explorer can drop a reservation (an Explorer restart, a display waking). If windows may run under the
+    /// bar again, register it anew.
+    /// </summary>
+    public void EnsureReserved()
+    {
+        if (_appBar == null || !SettingsStore.Current.TopBarReserve || !IsVisible) return;
+        var info = new MONITORINFOEX { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOEX>() };
+        if (!Win32.GetMonitorInfo(_monitor.Handle, ref info) || info.rcWork.Top >= _rect.Bottom) return;
+        Log.Write($"top bar: work area starts at {info.rcWork.Top}, reserving again");
+        _appBar.Release();
+        Place();
+    }
+
     public void SetHiddenForFullScreen(bool hidden)
     {
         if (hidden)

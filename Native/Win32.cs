@@ -178,7 +178,16 @@ public static class Win32
 
     [DllImport("shcore.dll")] public static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
 
-    [DllImport("shell32.dll")] public static extern UIntPtr SHAppBarMessage(uint msg, ref APPBARDATA data);
+    [DllImport("shell32.dll")] static extern UIntPtr SHAppBarMessage(uint msg, ref APPBARDATA data);
+
+    /// <summary>App bar call from this process. Through <see cref="TrayHost"/> Explorer stores the position but
+    /// never recomputes the work area (measured), so the stand-in steps aside and the call reaches Explorer itself.</summary>
+    public static UIntPtr AppBarMessage(uint msg, ref APPBARDATA data)
+    {
+        TrayHost.Instance.StepAside(true);
+        try { return SHAppBarMessage(msg, ref data); }
+        finally { TrayHost.Instance.StepAside(false); }
+    }
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] public static extern int SHEmptyRecycleBin(IntPtr hwnd, string? root, uint flags);
 
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attr, out int value, int size);

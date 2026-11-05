@@ -148,6 +148,7 @@ public sealed class MenuBars : IDisposable
             bool full = SettingsStore.Current.HideOnFullScreen && Monitors.IsFullScreen(fg, b.Monitor);
             if (full == b.IsVisible) b.SetHiddenForFullScreen(full);
             anyVisible |= !full;
+            b.EnsureReserved();
         }
         bool rest = !anyVisible && _bars.Count > 0;
         if (rest == _full) return;

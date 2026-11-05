@@ -35,13 +35,13 @@ public static class TaskbarControl
     static int GetState()
     {
         var data = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = Primary };
-        return (int)Win32.SHAppBarMessage(Win32.ABM_GETSTATE, ref data).ToUInt32();
+        return (int)Win32.AppBarMessage(Win32.ABM_GETSTATE, ref data).ToUInt32();
     }
 
     static void SetState(int state)
     {
         var data = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = Primary, lParam = new IntPtr(state) };
-        Win32.SHAppBarMessage(Win32.ABM_SETSTATE, ref data);
+        Win32.AppBarMessage(Win32.ABM_SETSTATE, ref data);
     }
 
     public static void Apply(TaskbarMode mode)

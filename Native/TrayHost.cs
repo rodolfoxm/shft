@@ -51,6 +51,7 @@ public sealed class TrayHost : IDisposable
     IntPtr _hwnd;
     uint _threadId;
     uint _taskbarCreated;
+    volatile bool _aside;
 
     public event Action? Changed;
 
@@ -95,10 +96,18 @@ public sealed class TrayHost : IDisposable
         DestroyWindow(_hwnd);
     }
 
+    /// <summary>Lets the next FindWindow from this process reach Explorer. Apps that call meanwhile also go straight there, harmlessly.</summary>
+    public void StepAside(bool aside)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        _aside = aside;
+        Win32.SetWindowPos(_hwnd, aside ? new IntPtr(1) /* HWND_BOTTOM */ : Win32.HWND_TOPMOST, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+    }
+
     /// <summary>FindWindow returns the first match in z-order, so this window has to stay above Explorer's.</summary>
     void StayFirst()
     {
-        if (RealTaskbar() == IntPtr.Zero) return;
+        if (_aside || RealTaskbar() == IntPtr.Zero) return;
         Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
     }
 

@@ -125,7 +125,7 @@ Decisão: tudo nativo no mesmo processo. O Seelen é Rust com interface web e AG
 
 **Por que a amostragem exclui a janela da captura:** ler a tela incluiria a própria barra. A exclusão vale só para leituras; a janela segue visível no monitor. Dura um quadro e acontece só em eventos (primeiro plano, mover, minimizar, papel de parede) e num pulso de 3 s no modo adaptativo. Em leitura falha, usa o tema com a camada de contraste.
 
-**Coexistência com o Explorer:** `TaskbarControl` acha a barra real procurando o filho `TrayNotifyWnd`, porque `FindWindow` agora devolve a janela do `TrayHost`. Se o shft. morre, a janela some e os apps voltam a falar com o Explorer.
+**Coexistência com o Explorer:** `TaskbarControl` acha a barra real procurando o filho `TrayNotifyWnd`, porque `FindWindow` agora devolve a janela do `TrayHost`. Se o shft. morre, a janela some e os apps voltam a falar com o Explorer. As chamadas de app bar do prÃ³prio shft. passam por `Win32.AppBarMessage`, que tira a janela substituta da frente por um instante: passando por ela, o Explorer guarda a posiÃ§Ã£o mas nÃ£o recalcula a Ã¡rea de trabalho (medido em 04/11/2026; chamadas de outros processos funcionam).
 
 ## Riscos e observações verificadas
 

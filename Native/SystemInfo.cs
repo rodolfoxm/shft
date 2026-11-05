@@ -97,6 +97,7 @@ public static class StartWithWindows
                 key.DeleteValue(OldName, throwOnMissingValue: false); // shft. replaces the old Dock at sign-in
             }
             else key.DeleteValue(Name, throwOnMissingValue: false);
+            Core.Log.Write($"start with Windows -> {on}: {string.Join(", ", key.GetValueNames().Where(n => n is Name or OldName))}");
         }
         catch (Exception ex)
         {
