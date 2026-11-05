@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 /// <summary>A progress ring (0..1).</summary>
 public sealed class Ring : FrameworkElement

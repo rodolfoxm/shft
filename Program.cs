@@ -1,7 +1,7 @@
 using System.Threading;
-using ClonaDock.Native;
+using Shft.Native;
 
-namespace ClonaDock;
+namespace Shft;
 
 /// <summary>
 /// Entry point. Helper runs (the taskbar watchdog, <c>--quit</c>, a second launch) finish here
@@ -9,8 +9,10 @@ namespace ClonaDock;
 /// </summary>
 public static class Program
 {
-    public const string QuitEvent = "ClonaDock.Quit";
-    public const string ShowSettingsEvent = "ClonaDock.ShowSettings";
+    public const string QuitEvent = "shft.Quit";
+    public const string ShowSettingsEvent = "shft.ShowSettings";
+    public const string ToggleAppsEvent = "shft.ToggleApps";
+    public const string ToggleControlsEvent = "shft.ToggleControls";
 
     /// <summary>Held by the running Dock; a second launch only signals it.</summary>
     internal static Mutex? SingleInstance;
@@ -24,14 +26,18 @@ public static class Program
             return 0;
         }
 
-        if (args.Contains("--quit"))
+        if (args.Contains("--purge")) return SystemActions.PurgeElevated();
+
+        // Signals to the running instance, handy for Stream Deck buttons and scripts.
+        foreach (var (flag, name) in new[] { ("--quit", QuitEvent), ("--toggle-apps", ToggleAppsEvent), ("--toggle-controls", ToggleControlsEvent) })
         {
-            using var quit = new EventWaitHandle(false, EventResetMode.AutoReset, QuitEvent);
-            quit.Set();
+            if (!args.Contains(flag)) continue;
+            using var signal = new EventWaitHandle(false, EventResetMode.AutoReset, name);
+            signal.Set();
             return 0;
         }
 
-        SingleInstance = new Mutex(true, "ClonaDock.SingleInstance", out bool first);
+        SingleInstance = new Mutex(true, "shft.SingleInstance", out bool first);
         if (!first)
         {
             // Opening the app again while it runs brings up its settings.

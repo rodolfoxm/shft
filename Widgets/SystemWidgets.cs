@@ -1,12 +1,12 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using ClonaDock.Core;
-using ClonaDock.Dock;
-using ClonaDock.Native;
+using Shft.Core;
+using Shft.Dock;
+using Shft.Native;
 using Forms = System.Windows.Forms;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 public sealed class SystemActivityWidget : WidgetBase
 {

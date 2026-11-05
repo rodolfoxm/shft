@@ -4,10 +4,10 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using ClonaDock.Core;
-using ClonaDock.Ui;
+using Shft.Core;
+using Shft.Ui;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 public sealed record Place(string Name, string Region, double Latitude, double Longitude)
 {
@@ -28,7 +28,7 @@ public static class WeatherService
 
     static WeatherService()
     {
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd("ClonaDock/0.1");
+        Http.DefaultRequestHeaders.UserAgent.ParseAdd("shft/1.0");
     }
 
     public static async Task<IReadOnlyList<Place>> Search(string name)

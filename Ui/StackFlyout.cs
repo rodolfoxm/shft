@@ -2,10 +2,10 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using ClonaDock.Dock;
-using ClonaDock.Native;
+using Shft.Dock;
+using Shft.Native;
 
-namespace ClonaDock.Ui;
+namespace Shft.Ui;
 
 /// <summary>A folder in the Dock opens as a grid of its newest items.</summary>
 public sealed class StackFlyout : FlyoutWindow

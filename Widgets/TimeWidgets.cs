@@ -2,11 +2,11 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using ClonaDock.Core;
-using ClonaDock.Dock;
-using ClonaDock.Ui;
+using Shft.Core;
+using Shft.Dock;
+using Shft.Ui;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 public sealed class ClockWidget : WidgetBase
 {
@@ -106,24 +106,10 @@ public sealed class CalendarWidget : WidgetBase
         _day.Text = now.Day.ToString();
     }
 
-    public override void OnClick(FrameworkElement anchor) => new CalendarFlyout().ShowNear(anchor);
+    public override void OnClick(FrameworkElement anchor) => new CalendarPanel().ShowNear(anchor);
 
     public override void AddMenuItems(ContextMenu menu) =>
         menu.Items.Add(MenuItem("Abrir Calendário", () => DockController.Open("outlookcal:")));
-
-    sealed class CalendarFlyout : FlyoutWindow
-    {
-        public CalendarFlyout()
-        {
-            var root = new StackPanel();
-            root.Children.Add(Heading(DateTime.Now.ToString("dddd, d 'de' MMMM 'de' yyyy", CultureInfo.CurrentCulture)));
-            root.Children.Add(new System.Windows.Controls.Calendar { SelectedDate = DateTime.Today, DisplayDate = DateTime.Today });
-            var open = FlatButton(new TextBlock { Text = "Abrir Calendário  ›" }, () => { SafeClose(); DockController.Open("outlookcal:"); });
-            open.HorizontalAlignment = HorizontalAlignment.Right;
-            root.Children.Add(open);
-            Body = root;
-        }
-    }
 }
 
 public sealed class CountdownWidget : WidgetBase
@@ -187,7 +173,7 @@ public sealed class CountdownWidget : WidgetBase
         if (!DateTime.TryParseExact(text.Trim(), new[] { "dd/MM/yyyy HH:mm", "dd/MM/yyyy", "d/M/yyyy", "d/M/yyyy H:mm" },
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
-            MessageBox.Show("Data não reconhecida. Use dd/mm/aaaa.", "ClonaDock");
+            MessageBox.Show("Data não reconhecida. Use dd/mm/aaaa.", "shft.");
             return;
         }
         var label = InputDialog.Ask("Contagem regressiva", "Contando até… (opcional)", Item.Get("label") ?? "");

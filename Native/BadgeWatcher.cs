@@ -1,10 +1,10 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows.Threading;
-using ClonaDock.Core;
+using Shft.Core;
 using Microsoft.Data.Sqlite;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>
 /// Reads the badges apps publish to Windows (the unread count on a Store app's taskbar icon, e.g. WhatsApp)
@@ -18,7 +18,7 @@ public sealed class BadgeWatcher : IDisposable
 
     static readonly string Source = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\Notifications\wpndatabase.db");
-    static readonly string CopyFolder = Path.Combine(Path.GetTempPath(), "ClonaDock-badges");
+    static readonly string CopyFolder = Path.Combine(Path.GetTempPath(), "shft-badges");
     static readonly Regex Value = new("value\\s*=\\s*\"([^\"]*)\"", RegexOptions.IgnoreCase);
 
     readonly DispatcherTimer _timer;

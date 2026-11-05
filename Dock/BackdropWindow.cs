@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
-using ClonaDock.Native;
+using Shft.Native;
 
-namespace ClonaDock.Dock;
+namespace Shft.Dock;
 
 /// <summary>
 /// A borderless window that sits exactly behind the bar and blurs what is under it.
@@ -19,7 +19,7 @@ public sealed class BackdropWindow : Window
 
     public BackdropWindow()
     {
-        Title = "ClonaDock Backdrop";
+        Title = "shft. backdrop";
         WindowStyle = WindowStyle.None;
         // Not a layered window: Windows ignores the rounded window region on layered windows,
         // which left the blur as a square-cornered rectangle behind the bar.

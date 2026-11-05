@@ -1,7 +1,7 @@
 using System.Windows.Forms;
-using ClonaDock.Core;
+using Shft.Core;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 public sealed record MonitorInfo(IntPtr Handle, RECT Bounds, RECT WorkArea, bool Primary, string Device, double Scale);
 
@@ -35,6 +35,18 @@ public static class Monitors
     {
         var handle = Win32.MonitorFromWindow(hwnd, Win32.MONITOR_DEFAULTTONEAREST);
         return All().FirstOrDefault(m => m.Handle == handle) ?? Pick(-1);
+    }
+
+    /// <summary>True when <paramref name="window"/> (normally the foreground one) covers all of the monitor.</summary>
+    public static bool IsFullScreen(IntPtr window, MonitorInfo monitor)
+    {
+        if (window == IntPtr.Zero || window == Win32.GetShellWindow() || window == Win32.GetDesktopWindow()) return false;
+        if (Win32.ClassName(window) is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Windows.UI.Core.CoreWindow") return false;
+        Win32.GetWindowThreadProcessId(window, out uint pid);
+        if (pid == Environment.ProcessId || !Win32.GetWindowRect(window, out var r)) return false;
+        var m = ForWindow(window);
+        if (m.Handle != monitor.Handle) return false;
+        return r.Left <= m.Bounds.Left && r.Top <= m.Bounds.Top && r.Right >= m.Bounds.Right && r.Bottom >= m.Bounds.Bottom;
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]

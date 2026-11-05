@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct RECT

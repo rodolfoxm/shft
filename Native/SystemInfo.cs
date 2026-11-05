@@ -3,7 +3,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>CPU, memory and network meters shared by the widgets.</summary>
 public static class SystemMeters
@@ -79,11 +79,11 @@ public static class SystemMeters
     }
 }
 
-/// <summary>"Open ClonaDock when Windows starts" through the per-user Run key.</summary>
+/// <summary>"Open shft. when Windows starts" through the per-user Run key.</summary>
 public static class StartWithWindows
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    const string Name = "ClonaDock";
+    const string Name = "shft", OldName = "ClonaDock";
 
     public static void Set(bool on)
     {
@@ -91,7 +91,11 @@ public static class StartWithWindows
         {
             using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
             if (key == null) return;
-            if (on && Environment.ProcessPath is string exe) key.SetValue(Name, $"\"{exe}\"");
+            if (on && Environment.ProcessPath is string exe)
+            {
+                key.SetValue(Name, $"\"{exe}\"");
+                key.DeleteValue(OldName, throwOnMissingValue: false); // shft. replaces the old Dock at sign-in
+            }
             else key.DeleteValue(Name, throwOnMissingValue: false);
         }
         catch (Exception ex)

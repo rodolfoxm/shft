@@ -4,10 +4,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using ClonaDock.Core;
-using ClonaDock.Ui;
+using Shft.Core;
+using Shft.Ui;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 public sealed class NoteWidget : WidgetBase
 {
@@ -64,7 +64,7 @@ public sealed class NoteWidget : WidgetBase
 
         public NoteFlyout(string text)
         {
-            Frame.Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xE6, 0x80));
+            Paper = Color.FromRgb(0xFF, 0xE6, 0x80);
             _box = new TextBox
             {
                 Text = text,

@@ -8,17 +8,17 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>ClonaDock</AssemblyName>
-    <RootNamespace>ClonaDock</RootNamespace>
+    <AssemblyName>shft</AssemblyName>
+    <RootNamespace>Shft</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\dock.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
-    <StartupObject>ClonaDock.Program</StartupObject>
+    <ApplicationIcon>Assets\shft.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <StartupObject>Shft.Program</StartupObject>
     <!-- Lower memory: workstation GC that compacts more eagerly, no background GC thread. -->
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>true</TieredPGO>
-    <Product>ClonaDock</Product>
+    <Product>shft.</Product>
     <!-- Quality gate (see docs/quality.md): the default .NET analyzer set had zero
          findings at adoption, so CA warnings now fail the build. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -30,10 +30,12 @@
     <!-- WPF and WinForms both define Point, Application, MessageBox...; keep WPF's names unqualified. -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
+    <Compile Remove="tests/**" />
+    <Page Remove="tests/**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\dock.ico" />
+    <Resource Include="Assets\shft.ico" />
     <!-- Program.Main is the entry point, so helper runs skip WPF entirely. -->
     <!-- GC compacts harder to keep the heap small (0 = off, 9 = most aggressive). -->
     <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
@@ -43,6 +45,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="shft.Tests" />
   </ItemGroup>
 
 </Project>

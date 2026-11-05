@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
-using ClonaDock.Core;
+using Shft.Core;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>
 /// Reserves a strip along a screen edge (SHAppBarMessage), so maximized windows
@@ -29,7 +29,7 @@ public sealed class AppBar : IDisposable
     public AppBar(HwndSource source)
     {
         _hwnd = source.Handle;
-        _callback = Win32.RegisterWindowMessage("ClonaDock.AppBarMessage");
+        _callback = Win32.RegisterWindowMessage("shft.AppBarMessage");
         _taskbarCreated = Win32.RegisterWindowMessage("TaskbarCreated");
         source.AddHook(WndProc);
     }
@@ -39,6 +39,7 @@ public sealed class AppBar : IDisposable
     /// <summary>Reserves <paramref name="thickness"/> physical pixels along <paramref name="edge"/> of the monitor.</summary>
     public RECT Reserve(DockEdge edge, RECT monitor, int thickness)
     {
+        bool known = _registered;
         if (!_registered)
         {
             var data = Data();
@@ -71,6 +72,9 @@ public sealed class AppBar : IDisposable
             case DockEdge.Left: abd.rc.Right = abd.rc.Left + thickness; break;
             case DockEdge.Right: abd.rc.Left = abd.rc.Right - thickness; break;
         }
+        // SETPOS notifies every other app bar; repeating an unchanged one would make the bar and the Dock
+        // answer each other forever.
+        if (known && abd.rc.Equals(Reserved)) return Reserved;
         Win32.SHAppBarMessage(Win32.ABM_SETPOS, ref abd);
         Reserved = abd.rc;
         return abd.rc;

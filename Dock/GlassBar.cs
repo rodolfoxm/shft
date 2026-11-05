@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 
-namespace ClonaDock.Dock;
+namespace Shft.Dock;
 
 /// <summary>
 /// The bar's own surface: a tinted fill plus either a plain hairline border or a

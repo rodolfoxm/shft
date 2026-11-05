@@ -1,26 +1,30 @@
-# ClonaDock — instruções para agentes
+# shft. — instruções para agentes
 
-Dock estilo macOS para Windows em C#/.NET 8 WPF. Produto: [PRODUCT.md](PRODUCT.md). Arquitetura: [docs/architecture.md](docs/architecture.md). Setup e evidências: [docs/setup.md](docs/setup.md).
+Ambiente de desktop para Windows (barra superior, Dock, Central de Controle, Applications) em C#/.NET 8 WPF. Produto: [PRODUCT.md](PRODUCT.md). Arquitetura: [docs/architecture.md](docs/architecture.md). Setup e evidências: [docs/setup.md](docs/setup.md).
 
 ## Stack
 
-.NET 8 (`net8.0-windows10.0.19041.0`), WPF + interop WinForms, P/Invoke Win32, `Microsoft.Data.Sqlite` (só para ler o banco de notificações do Windows). Configurações em JSON (`%APPDATA%\ClonaDock\settings.json`). SDK .NET 8 na máquina.
+.NET 8 (`net8.0-windows10.0.19041.0`), WPF + interop WinForms, P/Invoke Win32, `Microsoft.Data.Sqlite` (só para ler o banco de notificações do Windows). Configurações em JSON (`%APPDATA%\shft\settings.json`). SDK .NET 8 na máquina.
 
 ## Comandos canônicos
 
-- Restaurar/compilar: `dotnet build` (analisadores .NET com avisos CA tratados como erro)
-- Rodar: `dotnet run` — com a cópia em uso rodando (`../ClonaDock-app`), a instância única só abre as Configurações e o build local não sobe. Testar o build local exige encerrar a cópia em uso com `ClonaDock.exe --quit`: **peça ao usuário antes** e, ao terminar, reabra `../ClonaDock-app/ClonaDock.exe`
+- Restaurar/compilar: `dotnet build shft.csproj` (analisadores .NET com avisos CA tratados como erro)
+- Rodar: `dotnet run` — com a cópia em uso rodando (`../shft-app`), a instância única só abre as Configurações e o build local não sobe. Testar o build local exige encerrar a cópia em uso com `shft.exe --quit`: **peça ao usuário antes** e, ao terminar, reabra `../shft-app/shft.exe`
 - Lint/estilo: analisadores no build; `dotnet format whitespace --verify-no-changes` é informativo (diferenças de formatação antigas, veja `docs/quality.md`)
 - Tipos: compilador C# com `Nullable` habilitado
-- Testes: não há projeto de testes (pendência registrada em `docs/quality.md`)
-- Verificar tudo: `dotnet build`
+- Testes: `dotnet test tests/shft.Tests` (xUnit; lógica pura, sem janelas nem estado do Windows)
+- Verificar tudo: `dotnet build shft.csproj` e `dotnet test tests/shft.Tests`
+- Rodar ao lado da cópia em uso: defina `SHFT_DATA` para uma pasta temporária com `Taskbar: Keep`, `StartWithWindows: false`, `TopBarReserve: false`; o build em `bin/` tem o mesmo mutex da cópia em uso, então encerre o shft. publicado antes (pedir ao usuário)
 
 ## Regras do projeto
 
-- O app mexe em estado global do Windows: oculta a barra de tarefas, reserva área de tela (app bar) e grava `HKCU\…\Run\ClonaDock`. Qualquer mudança nesses caminhos precisa preservar a recuperação (`taskbar-restore.json`, processo `--watchdog`, `RecoverFromCrash`).
-- A cópia em uso fica em `../ClonaDock-app` (autoinício). Nunca a sobrescreva; encerrá-la para testar segue a regra de `Rodar` acima (pedir antes, reabrir depois). Teste builds locais a partir de `bin/`.
+- O app mexe em estado global do Windows: oculta a barra de tarefas, reserva área de tela (app bar) e grava `HKCU\…\Run\shft`. Qualquer mudança nesses caminhos precisa preservar a recuperação (`taskbar-restore.json`, processo `--watchdog`, `RecoverFromCrash`).
+- A cópia em uso fica em `../shft-app` (autoinício). Nunca a sobrescreva; encerrá-la para testar segue a regra de `Rodar` acima (pedir antes, reabrir depois). Teste builds locais a partir de `bin/`.
 - Memória é requisito: o csproj usa GC de estação com compactação agressiva. Não adicione dependências pesadas nem timers frequentes sem medir.
 - Arquivos em UTF-8 (há textos acentuados); evite ferramentas que regravem com outra codificação.
+- O código do Seelen UI é AGPL-3.0: use-o só como referência de comportamento, nunca copie código, ícones ou recursos ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
+- `TrayHost` fica no caminho de `Shell_NotifyIcon` e das mensagens de app bar de todo o sistema: tudo que recebe tem de seguir para o Explorer, e nada ali pode bloquear.
+- Não acione de verdade HDR, luz noturna, Bluetooth ou brilho em testes sem pedir: são estado do usuário.
 - Rede só no widget de clima (Open-Meteo). Não adicione outras chamadas sem pedido.
 
 ## Acordos de trabalho

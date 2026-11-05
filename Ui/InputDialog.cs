@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace ClonaDock.Ui;
+namespace Shft.Ui;
 
 /// <summary>A small modal prompt for one line of text.</summary>
 public static class InputDialog

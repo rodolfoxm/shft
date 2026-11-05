@@ -2,10 +2,10 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
-using ClonaDock.Core;
-using ClonaDock.Native;
+using Shft.Core;
+using Shft.Native;
 
-namespace ClonaDock.Dock;
+namespace Shft.Dock;
 
 /// <summary>
 /// The transparent strip along a screen edge that hosts the Dock. It never takes focus,
@@ -31,7 +31,7 @@ public sealed class DockWindow : Window
 
     public DockWindow()
     {
-        Title = "ClonaDock";
+        Title = "shft.";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -147,6 +147,7 @@ public sealed class DockWindow : Window
             _appBar.Release();
             _monitor = Monitors.Pick(s.Monitor);
             area = s.Taskbar == TaskbarMode.Keep ? _monitor.WorkArea : _monitor.Bounds;
+            if (s.TopBarEnabled && s.TopBarReserve) area.Top = _monitor.WorkArea.Top; // the top bar keeps that strip
         }
 
         _area = area;
@@ -313,19 +314,7 @@ public sealed class DockWindow : Window
         return r.Contains(p);
     }
 
-    bool ForegroundIsFullScreen()
-    {
-        var fg = Win32.GetForegroundWindow();
-        if (fg == IntPtr.Zero || fg == _hwnd || fg == Win32.GetShellWindow() || fg == Win32.GetDesktopWindow()) return false;
-        var cls = Win32.ClassName(fg);
-        if (cls is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Windows.UI.Core.CoreWindow") return false;
-        Win32.GetWindowThreadProcessId(fg, out uint pid);
-        if (pid == Environment.ProcessId) return false;
-        if (!Win32.GetWindowRect(fg, out var r)) return false;
-        var m = Monitors.ForWindow(fg);
-        if (m.Handle != _monitor.Handle) return false;
-        return r.Left <= m.Bounds.Left && r.Top <= m.Bounds.Top && r.Right >= m.Bounds.Right && r.Bottom >= m.Bounds.Bottom;
-    }
+    bool ForegroundIsFullScreen() => Monitors.IsFullScreen(Win32.GetForegroundWindow(), _monitor);
 
     protected override void OnClosed(EventArgs e)
     {

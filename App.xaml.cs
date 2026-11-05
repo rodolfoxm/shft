@@ -2,12 +2,14 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
-using ClonaDock.Core;
-using ClonaDock.Dock;
-using ClonaDock.Native;
-using ClonaDock.Ui;
+using System.Windows.Interop;
+using Shft.Bar;
+using Shft.Core;
+using Shft.Dock;
+using Shft.Native;
+using Shft.Ui;
 
-namespace ClonaDock;
+namespace Shft;
 
 public partial class App : Application
 {
@@ -15,6 +17,9 @@ public partial class App : Application
     DockWindow? _dock;
     TrayIcon? _tray;
     SettingsWindow? _settings;
+    MenuBars? _bars;
+    HwndSource? _hotkeyHost;
+    GlobalHotkey? _appsHotkey, _controlHotkey;
 
     public static new App Current => (App)Application.Current;
 
@@ -32,7 +37,10 @@ public partial class App : Application
                 Dispatcher.BeginInvoke(() => ShowSettings());
         }) { IsBackground = true, Name = "settings listener" }.Start();
 
-        // `ClonaDock.exe --quit` asks this instance to close cleanly (taskbar and reserved space restored).
+        Listen(Program.ToggleAppsEvent, () => SpotlightWindow.Toggle());
+        Listen(Program.ToggleControlsEvent, () => _bars?.ToggleControlCenter());
+
+        // `shft.exe --quit` asks this instance to close cleanly (taskbar and reserved space restored).
         new Thread(() =>
         {
             quit.WaitOne();
@@ -53,11 +61,23 @@ public partial class App : Application
 
         TaskbarControl.RecoverFromCrash();
         var settings = SettingsStore.Load();
-        Log.Write("ClonaDock starting");
+        Log.Write("shft. starting");
 
         _dock = new DockWindow();
         _dock.Show();
         _dock.Controller.Start();
+
+        TrayHost.Instance.Start();
+        _ = ConnectivityService.Instance.StartAsync();
+        _ = NotificationService.Instance.StartAsync();
+        _bars = new MenuBars();
+        _bars.Start();
+        AppCatalog.Refresh();
+
+        _hotkeyHost = new HwndSource(new HwndSourceParameters("shft. hotkeys") { Width = 0, Height = 0, WindowStyle = 0 });
+        _hotkeyHost.AddHook(OnHostMessage);
+        _appsHotkey = new GlobalHotkey(_hotkeyHost, () => SpotlightWindow.Toggle());
+        _controlHotkey = new GlobalHotkey(_hotkeyHost, () => _bars?.ToggleControlCenter());
 
         ApplySystemSettings(); // also starts the taskbar watchdog when the taskbar gets hidden
 
@@ -73,11 +93,40 @@ public partial class App : Application
         }
     }
 
+    void Listen(string eventName, Action action)
+    {
+        var signal = new EventWaitHandle(false, EventResetMode.AutoReset, eventName);
+        new Thread(() =>
+        {
+            while (signal.WaitOne())
+                Dispatcher.BeginInvoke(action);
+        }) { IsBackground = true, Name = eventName }.Start();
+    }
+
     void OnSettingsChanged()
     {
         _dock?.Controller.ApplySettings();
+        _bars?.Apply();
         ApplySystemSettings();
     }
+
+    /// <summary>Monitors, wallpaper and colour mode changes reach this hidden window like any top-level one.</summary>
+    IntPtr OnHostMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_SETTINGCHANGE = 0x001A, WM_DISPLAYCHANGE = 0x007E;
+        if (msg == WM_DISPLAYCHANGE)
+        {
+            ControlCenterWindow.ForgetScreens();
+            Dispatcher.BeginInvoke(() => _bars?.Apply(), DispatcherPriority.Background);
+        }
+        else if (msg == WM_SETTINGCHANGE)
+        {
+            Dispatcher.BeginInvoke(() => _bars?.Apply(), DispatcherPriority.Background);
+        }
+        return IntPtr.Zero;
+    }
+
+    string? _appliedAppsKey, _appliedControlKey;
 
     TaskbarMode _appliedTaskbar = TaskbarMode.Keep;
     bool? _appliedStartup;
@@ -94,6 +143,16 @@ public partial class App : Application
             if (wasKeep && s.Taskbar != TaskbarMode.Keep && _dock != null) TaskbarControl.StartWatchdog();
             // The work area changes once the taskbar moves; lay the Dock out again.
             _dock?.Dispatcher.BeginInvoke(() => _dock.ApplyLayout(), DispatcherPriority.Background);
+        }
+        if (_appliedAppsKey != s.AppsHotkey)
+        {
+            _appliedAppsKey = s.AppsHotkey;
+            _appsHotkey?.Set(s.AppsHotkey);
+        }
+        if (_appliedControlKey != s.ControlCenterHotkey)
+        {
+            _appliedControlKey = s.ControlCenterHotkey;
+            _controlHotkey?.Set(s.ControlCenterHotkey);
         }
         if (_appliedStartup != s.StartWithWindows)
         {
@@ -129,9 +188,21 @@ public partial class App : Application
         r["MenuBorderBrush"] = Theme.Brush(theme.MenuSeparator);
         r["MenuSeparatorBrush"] = Theme.Brush(theme.MenuSeparator);
         r["AccentBrush"] = Theme.Brush(theme.Accent);
+        r["PanelTintBrush"] = Theme.Brush(theme.PanelTint);
+        r["TileBrush"] = Theme.Brush(theme.TileBack);
+        r["TileHoverBrush"] = Theme.Brush(theme.TileHover);
+        r["TileOnBrush"] = Theme.Brush(theme.TileOn);
+        r["TileOnTextBrush"] = Theme.Brush(theme.TileOnText);
+        r["TileRimBrush"] = Theme.Brush(theme.TileRim);
+        r["TextBrush"] = Theme.Brush(theme.Text);
+        r["TextSubtleBrush"] = Theme.Brush(theme.TextSubtle);
     }
 
     public static DockController? Dock => Current._dock?.Controller;
+
+    public static MenuBars? Bars => Current._bars;
+
+    public static void Notify(string title, string text) => Current._tray?.Notify(title, text);
 
     protected override void OnExit(ExitEventArgs e)
     {
@@ -144,10 +215,15 @@ public partial class App : Application
         }
         try
         {
+            _appsHotkey?.Dispose();
+            _controlHotkey?.Dispose();
+            _hotkeyHost?.Dispose();
+            _bars?.Dispose();
+            TrayHost.Instance.Dispose();
             _tray?.Dispose();
             try { _dock?.Close(); } catch (InvalidOperationException) { }
             TaskbarControl.Restore();
-            Log.Write("ClonaDock stopped");
+            Log.Write("shft. stopped");
         }
         finally
         {

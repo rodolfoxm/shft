@@ -2,7 +2,7 @@
 
 ## Stack real
 
-| Item | Valor (do `ClonaDock.csproj`) |
+| Item | Valor (do `shft.csproj`) |
 |---|---|
 | Runtime | .NET 8, `net8.0-windows10.0.19041.0`, `OutputType=WinExe` |
 | UI | WPF (`UseWPF`) + Windows Forms (`UseWindowsForms`, só para `NotifyIcon` e `System.Drawing.Icon` da bandeja) |
@@ -34,8 +34,8 @@ Assets/dock.ico       ícone do app e da bandeja (recurso WPF)
 | Componente | Responsabilidade |
 |---|---|
 | `Program` | Trata `--watchdog <pid>`, `--quit` e a checagem de instância única (mutex) antes de criar o WPF; só então instancia `App` |
-| `App` | Cria `DockWindow`, `TrayIcon`, escuta eventos nomeados (`ClonaDock.ShowSettings`, `ClonaDock.Quit`) em threads de fundo, aplica barra de tarefas e Run key, trata exceções não tratadas (log) |
-| `SettingsStore` | Carrega/salva `AppSettings` em `%APPDATA%\ClonaDock\settings.json`; evento estático `Changed` dispara reaplicação |
+| `App` | Cria `DockWindow`, `TrayIcon`, escuta eventos nomeados (`shft..ShowSettings`, `shft..Quit`) em threads de fundo, aplica barra de tarefas e Run key, trata exceções não tratadas (log) |
+| `SettingsStore` | Carrega/salva `AppSettings` em `%APPDATA%\shft\settings.json`; evento estático `Changed` dispara reaplicação |
 | `Theme` | Resolve cores a partir das configurações e do modo de cor do Windows (registro `Personalize`/`DWM`) |
 | `DockWindow` | Janela transparente, sem foco (`WS_EX_NOACTIVATE`), posicionada na borda; registra a app bar; `DispatcherTimer` de 100 ms para auto-ocultar, tela cheia e `TaskbarControl.Enforce` |
 | `BackdropWindow` | Janela separada atrás da barra que aplica o desfoque/acrílico do Windows (a janela do Dock é maior que a barra) |
@@ -57,8 +57,8 @@ Assets/dock.ico       ícone do app e da bandeja (recurso WPF)
 
 1. `Program.Main` (STA):
    - `--watchdog <pid>`: `TaskbarControl.RunWatchdog` espera o processo terminar e restaura a barra de tarefas se o marcador existir; retorna sem WPF.
-   - `--quit`: sinaliza o evento `ClonaDock.Quit`; retorna.
-   - Mutex `ClonaDock.SingleInstance`: se já existe, sinaliza `ClonaDock.ShowSettings`; retorna.
+   - `--quit`: sinaliza o evento `shft..Quit`; retorna.
+   - Mutex `shft..SingleInstance`: se já existe, sinaliza `shft..ShowSettings`; retorna.
    - Caso contrário `new App()`, `InitializeComponent()`, `Run()` (`ShutdownMode=OnExplicitShutdown`).
 2. `App.OnStartup`: threads ouvintes dos dois eventos; handlers de exceção (log, `TaskbarControl.Restore()` em erro fatal e no fim da sessão); `TaskbarControl.RecoverFromCrash()`; `SettingsStore.Load()`.
 3. `new DockWindow()`, `Show()`, `Controller.Start()` (inicia `WindowTracker`, `ApplySettings`).
@@ -104,9 +104,32 @@ Concentradas em `Native/`: `Win32.cs` (declarações), `AppBar`, `WindowTracker`
 
 Outros grandes, ainda abaixo: `DockWindow.cs` 339, `WeatherWidget.cs` 298, `WindowTracker.cs` 284.
 
+## Barra, painéis e serviços do sistema
+
+Decisão: tudo nativo no mesmo processo. O Seelen é Rust com interface web e AGPL-3.0; integrar exigiria mantê-lo rodando, o que anula o objetivo de reduzir o consumo.
+
+| Parte | Arquivo | Como funciona |
+|---|---|---|
+| Barras | `Bar/MenuBars.cs`, `Bar/MenuBarWindow.cs` | Uma janela por monitor, com app bar própria; dados compartilhados e temporizadores no `MenuBars`. Tela cheia oculta a barra do monitor e, com todos ocupados, os temporizadores param |
+| Painéis | `Ui/FlyoutWindow.cs` | Janela em camadas com vidro próprio, animação compartilhada e posicionamento por borda |
+| Áudio | `Native/AudioService.cs` | Core Audio com callbacks; `IPolicyConfig` (não documentado) para o dispositivo padrão |
+| Tela | `Native/DisplayService.cs` | Brilho DDC/CI (fora da thread de UI), HDR por display config, modo escuro no registro, luz noturna no blob do Windows |
+| Rede e rádios | `Native/ConnectivityService.cs` | `Windows.Devices.Radios`, Bluetooth, WiFi e `NetworkChange`, por eventos |
+| Notificações | `Native/NotificationService.cs` | `UserNotificationListener`; sem o evento (app sem pacote), sonda a cada 8 s e pausa em tela cheia |
+| Bandeja | `Native/TrayHost.cs` | Janela `Shell_TrayWnd` própria em thread dedicada, acima da do Explorer; lê `WM_COPYDATA` e repassa tudo ao Explorer |
+| Leitura de tela | `Native/ScreenSampler.cs` | Reduz e desfoca para o vidro; `WDA_EXCLUDEFROMCAPTURE` por um instante para ler o que há atrás da barra |
+| Ações | `Native/SystemActions.cs` | Sessão, limpeza de RAM (`shft.exe --purge` elevado), atalhos globais, menus clássicos do app em foco |
+| Movimento | `Core/Motion.cs` | Durações, mola e o respeito à preferência de movimento |
+
+**Por que o vidro é uma foto:** o DWM arredonda o desfoque só com 8 px, ignora regiões de janela (testado) e não anima opacidade nem escala. A foto na própria janela permite qualquer raio e anima junto. A barra, retangular, e o Dock seguem com o desfoque do DWM.
+
+**Por que a amostragem exclui a janela da captura:** ler a tela incluiria a própria barra. A exclusão vale só para leituras; a janela segue visível no monitor. Dura um quadro e acontece só em eventos (primeiro plano, mover, minimizar, papel de parede) e num pulso de 3 s no modo adaptativo. Em leitura falha, usa o tema com a camada de contraste.
+
+**Coexistência com o Explorer:** `TaskbarControl` acha a barra real procurando o filho `TrayNotifyWnd`, porque `FindWindow` agora devolve a janela do `TrayHost`. Se o shft. morre, a janela some e os apps voltam a falar com o Explorer.
+
 ## Riscos e observações verificadas
 
-- Modifica estado global do sistema (barra de tarefas, área de trabalho). O mecanismo de recuperação existe, mas depende do marcador em `%APPDATA%\ClonaDock`.
+- Modifica estado global do sistema (barra de tarefas, área de trabalho). O mecanismo de recuperação existe, mas depende do marcador em `%APPDATA%\shft`.
 - Strings de interface estão fixas em pt-BR dentro do código.
 - Sem automação de testes: regressões nas interações com o Windows só são vistas em execução manual.
 

@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using ClonaDock.Core;
+using Shft.Core;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>
 /// Hides or auto-hides the Windows taskbar while the Dock runs and puts it back exactly as it was.
@@ -21,7 +21,7 @@ public static class TaskbarControl
 
     public static TaskbarMode Mode => _mode;
 
-    static IntPtr Primary => Win32.FindWindow("Shell_TrayWnd", null);
+    static IntPtr Primary => TrayHost.FindTaskbar(IntPtr.Zero);
 
     static IEnumerable<IntPtr> AllTaskbars()
     {

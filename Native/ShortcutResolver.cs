@@ -2,7 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>Reads the target of .lnk shortcuts so a pinned shortcut matches its running app.</summary>
 public static class ShortcutResolver

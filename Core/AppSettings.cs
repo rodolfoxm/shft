@@ -1,10 +1,15 @@
-namespace ClonaDock.Core;
+namespace Shft.Core;
 
 public enum DockEdge { Bottom, Left, Right, Top }
 
 public enum TaskbarMode { Keep, AutoHide, Hide }
 
 public enum ThemeMode { Auto, Dark, Light }
+
+/// <summary>Top bar background. Adaptive leaves it clear and picks text colours from what is behind it.</summary>
+public enum TopBarStyle { Solid, Translucent, Adaptive }
+
+public enum MotionMode { Auto, Full, Reduced }
 
 public enum DockItemKind { App, Folder, File, Spacer, Widget }
 
@@ -105,6 +110,50 @@ public sealed class AppSettings
     public double WeatherLatitude { get; set; }
     public double WeatherLongitude { get; set; }
     public bool Fahrenheit { get; set; }
+
+    // Top bar
+    public bool TopBarEnabled { get; set; } = true;
+    public TopBarStyle TopBarStyle { get; set; } = TopBarStyle.Translucent;
+    /// <summary>Fill opacity of the translucent mode, 0..1.</summary>
+    public double TopBarOpacity { get; set; } = 0.55;
+    public bool TopBarBlur { get; set; } = true;
+    public double TopBarHeight { get; set; } = 32;
+    public bool TopBarAllMonitors { get; set; } = true;
+    public bool TopBarReserve { get; set; } = true;
+    /// <summary>Adaptive mode: a soft layer behind the content when the background is mixed.</summary>
+    public bool TopBarScrim { get; set; } = true;
+    /// <summary>Picture on the bar's left; empty uses the brand mark.</summary>
+    public string TopBarLogo { get; set; } = "";
+    /// <summary>Paint the logo in the text colour, so it follows light and dark backgrounds.</summary>
+    public bool TopBarLogoTint { get; set; } = true;
+    /// <summary>Name by the logo; empty uses the Windows display name.</summary>
+    public string TopBarUserName { get; set; } = "";
+    public bool TopBarShowUser { get; set; } = true;
+    public bool TopBarShowApp { get; set; } = true;
+    public bool TopBarShowMemory { get; set; } = true;
+    /// <summary>.NET date format of the clock.</summary>
+    public string TopBarClockFormat { get; set; } = "ddd d MMM, HH:mm";
+    /// <summary>Tray icons kept on the bar (lower-case exe paths); the rest live in the tray panel.</summary>
+    public List<string> PinnedTray { get; set; } = new();
+
+    // Panels
+    /// <summary>Tint over the blurred background of panels, 0..1.</summary>
+    public double PanelOpacity { get; set; } = 0.5;
+    /// <summary>How soft the panel's glass is: screen pixels merged into one sample.</summary>
+    public int PanelBlur { get; set; } = 10;
+    public bool PanelRim { get; set; } = true;
+
+    // Applications
+    public string AppsHotkey { get; set; } = "Alt+Space";
+    public string ControlCenterHotkey { get; set; } = "";
+    public List<string> AppsFavorites { get; set; } = new();
+    /// <summary>Most recent first.</summary>
+    public List<string> AppsRecent { get; set; } = new();
+
+    // Motion
+    public MotionMode Motion { get; set; } = MotionMode.Auto;
+    /// <summary>1 is normal; higher is quicker.</summary>
+    public double MotionSpeed { get; set; } = 1;
 
     public bool FirstRunDone { get; set; }
 

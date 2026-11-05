@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Threading;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 public sealed class AppWindow
 {

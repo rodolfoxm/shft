@@ -3,7 +3,7 @@ using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>
 /// Gives idle memory back to Windows: after startup and after a window (settings, launcher, stacks)

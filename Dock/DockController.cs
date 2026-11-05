@@ -5,12 +5,12 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using ClonaDock.Core;
-using ClonaDock.Native;
-using ClonaDock.Ui;
-using ClonaDock.Widgets;
+using Shft.Core;
+using Shft.Native;
+using Shft.Ui;
+using Shft.Widgets;
 
-namespace ClonaDock.Dock;
+namespace Shft.Dock;
 
 /// <summary>
 /// Decides what the Dock shows (pinned items, open apps, folders, widgets) and
@@ -91,7 +91,7 @@ public sealed class DockController : IDisposable
         if (s.ShowLauncher)
         {
             var t = Tile("launcher", EntryKind.Launcher);
-            t.Title = "Apps";
+            t.Title = "Applications";
             t.Section = Section.Leading;
             if (t.Tag as string != s.LauncherIcon || t.Child == null)
             {
@@ -335,7 +335,7 @@ public sealed class DockController : IDisposable
             switch (tile.Kind)
             {
                 case EntryKind.Launcher:
-                    LauncherWindow.Toggle(tile, this);
+                    SpotlightWindow.Toggle(_window.Monitor);
                     break;
                 case EntryKind.App:
                     if (button == MouseButton.Middle || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) Launch(tile);
@@ -414,13 +414,13 @@ public sealed class DockController : IDisposable
         Log.Write($"close blocked for {app} (runs as administrator)");
         MessageBox.Show(
             $"O {app} está rodando como administrador, e o Windows não deixa outros apps fecharem as janelas dele.\n\nFeche pelo próprio {app}.",
-            "ClonaDock", MessageBoxButton.OK, MessageBoxImage.Information);
+            "shft.", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public void Launch(DockTile tile)
     {
         if (string.IsNullOrEmpty(tile.LaunchPath)) return;
-        if (Launch(tile.LaunchPath, tile.Item?.Arguments) && SettingsStore.Current.BounceOnLaunch)
+        if (Launch(tile.LaunchPath, tile.Item?.Arguments) && SettingsStore.Current.BounceOnLaunch && !Motion.Reduced)
         {
             tile.Bounce();
             _view.Wake();
@@ -445,7 +445,7 @@ public sealed class DockController : IDisposable
         catch (Exception ex)
         {
             Log.Write($"could not open {path}: {ex.Message}");
-            MessageBox.Show($"Não foi possível abrir:\n{path}\n\n{ex.Message}", "ClonaDock", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"Não foi possível abrir:\n{path}\n\n{ex.Message}", "shft.", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
     }
@@ -536,7 +536,7 @@ public sealed class DockController : IDisposable
                 }));
                 break;
             case EntryKind.Launcher:
-                menu.Items.Add(Item("Abrir apps", () => LauncherWindow.Toggle(tile, this)));
+                menu.Items.Add(Item("Abrir Applications", () => SpotlightWindow.Toggle(_window.Monitor)));
                 menu.Items.Add(Item("Configurações do Windows", () => Open("ms-settings:")));
                 menu.Items.Add(Item("Gerenciador de Tarefas", () => Open("taskmgr.exe")));
                 menu.Items.Add(new Separator());
@@ -637,7 +637,7 @@ public sealed class DockController : IDisposable
 
         menu.Items.Add(Item("Ocultar automaticamente", () => { s.AutoHide = !s.AutoHide; SettingsStore.Save(); }, s.AutoHide));
         menu.Items.Add(Item("Mostrar apps abertos", () => { s.ShowOpenApps = !s.ShowOpenApps; SettingsStore.Save(); }, s.ShowOpenApps));        menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Encerrar ClonaDock", () => Application.Current.Shutdown()));
+        menu.Items.Add(Item("Encerrar shft.", () => Application.Current.Shutdown()));
     }
 
     ContextMenu NewMenu(UIElement target)

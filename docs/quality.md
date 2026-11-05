@@ -8,7 +8,7 @@
 | `dotnet format whitespace --verify-no-changes` | formatação de espaço em branco | informativo; não é gate (veja abaixo) |
 | `dotnet list package --vulnerable --include-transitive` | pacotes NuGet com aviso de segurança | ao mudar dependências |
 
-Não há projeto de testes. A verificação de comportamento é manual, a partir dos critérios de [PRODUCT.md](../PRODUCT.md), testando um build de `bin/`. Isso exige encerrar a cópia em uso com `ClonaDock.exe --quit`: peça ao usuário antes e reabra `../ClonaDock-app/ClonaDock.exe` ao terminar; a cópia em uso nunca é sobrescrita.
+Não há projeto de testes. A verificação de comportamento é manual, a partir dos critérios de [PRODUCT.md](../PRODUCT.md), testando um build de `bin/`. Isso exige encerrar a cópia em uso com `shft.exe --quit`: peça ao usuário antes e reabra `../shft-app/shft.exe` ao terminar; a cópia em uso nunca é sobrescrita.
 
 ## Regras e linha de base (adoção em 21/10/2026)
 
@@ -24,7 +24,11 @@ ESLint e o perfil de lint tipado do toolkit não se aplicam: não há JavaScript
 
 ## Estratégia de testes
 
-O risco está no estado global do Windows (barra de tarefas oculta, app bar, chave Run) e na recuperação após falha. Um projeto de testes (xUnit) para `Core/` (configurações, tema) seria o primeiro passo barato; para `Native/` a verificação continua manual. Criar o projeto de testes é uma decisão separada (pendência em `docs/setup.md`).
+`tests/shft.Tests` (xUnit, 44 testes) cobre a lógica pura: decisão de contraste, busca e ranking, parser de atalhos, blob da luz noturna, mensagens da bandeja, blur, relógio, recorte da logo e migração. Os testes usam pasta de dados temporária.
+
+O resto é verificação em execução, com o app ao lado da cópia em uso (`SHFT_DATA`), operado por UI Automation e sem entrada simulada na área de trabalho.
+
+Medição em 04/11/2026, com Dock e barra, um minuto em repouso: 0,08% de um núcleo, 80 MB privados, 53 MB em uso, 23 threads. Referência no mesmo dia: Seelen 742 MB em 10 processos.
 
 ## Dependências (auditoria de 21/10/2026)
 

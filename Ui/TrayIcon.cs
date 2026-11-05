@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Forms;
 
-namespace ClonaDock.Ui;
+namespace Shft.Ui;
 
 /// <summary>The icon by the clock: settings and quit, one click away.</summary>
 public sealed class TrayIcon : IDisposable
@@ -14,11 +14,11 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add("Configurações…", null, (_, _) => App.ShowSettings());
         menu.Items.Add("Adicionar um app…", null, (_, _) => App.ShowSettings("dock"));
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Encerrar ClonaDock", null, (_, _) => System.Windows.Application.Current.Shutdown());
+        menu.Items.Add("Encerrar shft.", null, (_, _) => System.Windows.Application.Current.Shutdown());
 
         _icon = new NotifyIcon
         {
-            Text = "ClonaDock",
+            Text = "shft.",
             Icon = LoadIcon(),
             ContextMenuStrip = menu,
             Visible = true,
@@ -33,12 +33,14 @@ public sealed class TrayIcon : IDisposable
     {
         try
         {
-            var stream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/dock.ico"))?.Stream;
+            var stream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/shft.ico"))?.Stream;
             if (stream != null) return new System.Drawing.Icon(stream, 16, 16);
         }
         catch { }
         return System.Drawing.SystemIcons.Application;
     }
+
+    public void Notify(string title, string text) => _icon.ShowBalloonTip(3000, title, text, ToolTipIcon.Info);
 
     public void Dispose()
     {

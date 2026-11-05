@@ -1,13 +1,13 @@
 using System.IO;
 
-namespace ClonaDock.Core;
+namespace Shft.Core;
 
 /// <summary>Small rolling log in the data folder; diagnostics only.</summary>
 public static class Log
 {
     static readonly object Gate = new();
 
-    static string FilePath => Path.Combine(SettingsStore.DataFolder, "clonadock.log");
+    static string FilePath => Path.Combine(SettingsStore.DataFolder, "shft.log");
 
     public static void Write(string message)
     {

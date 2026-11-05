@@ -3,9 +3,9 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
-using ClonaDock.Core;
+using Shft.Core;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 /// <summary>
 /// A live tile in the Dock. Content is laid out on a fixed design canvas (100 units tall)

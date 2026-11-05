@@ -1,7 +1,7 @@
 using System.Windows.Media;
 using Microsoft.Win32;
 
-namespace ClonaDock.Core;
+namespace Shft.Core;
 
 /// <summary>Colours for the Dock, its menus and popups, resolved from the settings and Windows' colour mode.</summary>
 public sealed class Theme
@@ -17,6 +17,16 @@ public sealed class Theme
     public Color MenuHover { get; init; }
     public Color MenuSeparator { get; init; }
     public Color Accent { get; init; }
+
+    // Glass panels and their controls.
+    public Color PanelTint { get; init; }
+    public Color TileBack { get; init; }
+    public Color TileHover { get; init; }
+    public Color TileOn { get; init; }
+    public Color TileOnText { get; init; }
+    public Color TileRim { get; init; }
+    public Color Text { get; init; }
+    public Color TextSubtle { get; init; }
 
     public static bool WindowsUsesDarkTaskbar()
     {
@@ -61,6 +71,7 @@ public sealed class Theme
             fill = Color.FromArgb(fillAlpha, tint.R, tint.G, tint.B);
 
         var accent = AccentColor();
+        byte panelAlpha = (byte)Math.Round(Math.Clamp(s.PanelOpacity, 0.1, 1) * 255);
         var indicator = TryParse(s.IndicatorColor, out var ind) ? ind
             : dark ? Color.FromRgb(0xE8, 0xE8, 0xE8) : Color.FromRgb(0x30, 0x30, 0x30);
 
@@ -77,6 +88,14 @@ public sealed class Theme
             MenuHover = dark ? Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x18, 0x00, 0x00, 0x00),
             MenuSeparator = dark ? Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x20, 0x00, 0x00, 0x00),
             Accent = accent,
+            PanelTint = dark ? Color.FromArgb(panelAlpha, 0x1A, 0x1A, 0x1E) : Color.FromArgb(panelAlpha, 0xF6, 0xF6, 0xF8),
+            TileBack = dark ? Color.FromArgb(0x2A, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x70, 0xFF, 0xFF, 0xFF),
+            TileHover = dark ? Color.FromArgb(0x3C, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xA8, 0xFF, 0xFF, 0xFF),
+            TileOn = dark ? Color.FromArgb(0xF0, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xE8, 0x1C, 0x1C, 0x20),
+            TileOnText = dark ? Color.FromRgb(0x14, 0x14, 0x18) : Colors.White,
+            TileRim = dark ? Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x18, 0x00, 0x00, 0x00),
+            Text = dark ? Color.FromRgb(0xF5, 0xF5, 0xF7) : Color.FromRgb(0x1A, 0x1A, 0x1E),
+            TextSubtle = dark ? Color.FromArgb(0xB0, 0xF5, 0xF5, 0xF7) : Color.FromArgb(0xB0, 0x1A, 0x1A, 0x1E),
         };
     }
 

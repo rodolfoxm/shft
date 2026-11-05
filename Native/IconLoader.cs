@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using ClonaDock.Core;
+using Shft.Core;
 
-namespace ClonaDock.Native;
+namespace Shft.Native;
 
 /// <summary>Large, alpha-correct icons for files, folders, apps and shell locations.</summary>
 public static class IconLoader

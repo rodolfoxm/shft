@@ -4,27 +4,27 @@
 
 - Windows 10 build 19041 ou superior (o projeto mira `net8.0-windows10.0.19041.0`; o app usa APIs do Windows e não roda em outros sistemas).
 - .NET 8 SDK. Confira com `dotnet --list-sdks` (deve listar uma versão 8.x).
-- Um editor C# (Visual Studio, Rider ou VS Code); não há solução `.sln`, só `ClonaDock.csproj`.
+- Um editor C# (Visual Studio, Rider ou VS Code); não há solução `.sln`, só `shft.csproj`.
 - Acesso à internet só é necessário para restaurar o pacote NuGet `Microsoft.Data.Sqlite` e, em execução, para o widget Clima.
 
 ## Primeira execução
 
 ```powershell
-cd ClonaDock
-dotnet build
-dotnet run
+cd shft.
+dotnet build shft.csproj
+dotnet run --project shft.csproj
 ```
 
-- `dotnet run` abre o Dock na borda inferior e, na primeira vez (sem `%APPDATA%\ClonaDock\settings.json`), a janela de Configurações.
-- O app é instância única. Se já houver um ClonaDock rodando (por exemplo o instalado em execução automática), `dotnet run` apenas pede a ele que mostre as Configurações e termina; para testar o build local, encerre o outro com `ClonaDock.exe --quit` (se for a cópia em uso do usuário, peça antes) e reabra `../ClonaDock-app/ClonaDock.exe` ao terminar.
-- Cuidado ao testar: o app pode ocultar a barra de tarefas do Windows e reservar área de tela. Se algo falhar, o marcador `%APPDATA%\ClonaDock\taskbar-restore.json` e o próximo start restauram a barra; ver [architecture.md](architecture.md).
+- `dotnet run` abre o Dock na borda inferior e, na primeira vez (sem `%APPDATA%\shft\settings.json`), a janela de Configurações.
+- O app é instância única. Se já houver um shft. rodando (por exemplo o instalado em execução automática), `dotnet run` apenas pede a ele que mostre as Configurações e termina; para testar o build local, encerre o outro com `shft.exe --quit` (se for a cópia em uso do usuário, peça antes) e reabra `../shft-app/shft.exe` ao terminar.
+- Cuidado ao testar: o app pode ocultar a barra de tarefas do Windows e reservar área de tela. Se algo falhar, o marcador `%APPDATA%\shft\taskbar-restore.json` e o próximo start restauram a barra; ver [architecture.md](architecture.md).
 - Não há variáveis de ambiente, segredos nem banco de dados a configurar.
 
 ## Depurar
 
 - Abra o `.csproj` no IDE e rode com F5; o ponto de entrada é `Program.Main`.
-- Logs: `%APPDATA%\ClonaDock\clonadock.log` (também acessível em Configurações > Sobre > Abrir pasta de dados).
-- As configurações são um JSON legível em `%APPDATA%\ClonaDock\settings.json`; apague-o para voltar aos padrões.
+- Logs: `%APPDATA%\shft\shft.log` (também acessível em Configurações > Sobre > Abrir pasta de dados).
+- As configurações são um JSON legível em `%APPDATA%\shft\settings.json`; apague-o para voltar aos padrões.
 
 ## Por onde começar a ler
 

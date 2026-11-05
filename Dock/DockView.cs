@@ -2,10 +2,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using ClonaDock.Core;
-using ClonaDock.Native;
+using Shft.Core;
+using Shft.Native;
 
-namespace ClonaDock.Dock;
+namespace Shft.Dock;
 
 /// <summary>
 /// Lays out the Dock: the bar, the tiles with their magnification, the hover label,

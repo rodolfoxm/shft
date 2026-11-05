@@ -2,13 +2,14 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ClonaDock.Core;
+namespace Shft.Core;
 
-/// <summary>Loads and saves <see cref="AppSettings"/> as JSON under %APPDATA%\ClonaDock.</summary>
+/// <summary>Loads and saves <see cref="AppSettings"/> as JSON under %APPDATA%\shft.</summary>
 public static class SettingsStore
 {
-    public static string DataFolder { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClonaDock");
+    /// <summary>SHFT_DATA points a side-by-side test run at its own settings.</summary>
+    public static string DataFolder { get; } = Environment.GetEnvironmentVariable("SHFT_DATA") is { Length: > 0 } data
+        ? data : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "shft");
 
     static string FilePath => Path.Combine(DataFolder, "settings.json");
 
@@ -23,10 +24,36 @@ public static class SettingsStore
     /// <summary>Raised after <see cref="Save"/> so open windows can re-apply what changed.</summary>
     public static event Action? Changed;
 
+    /// <summary>First run after the rename: bring over the Dock's settings and Seelen's logo, leaving the originals.</summary>
+    internal static void Migrate(string oldSettings, string? seelenToolbar)
+    {
+        if (File.Exists(FilePath) || !File.Exists(oldSettings)) return;
+        var migrated = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(oldSettings), Options);
+        if (migrated == null) return;
+        migrated.Motion = MotionMode.Full; // this setup keeps Windows' animations off for speed; shft.'s own are still wanted
+        migrated.TopBarClockFormat = "ddd d MMM, hh:mm tt"; // as the toolbar it replaces showed it
+        Directory.CreateDirectory(DataFolder);
+        if (seelenToolbar != null && File.Exists(seelenToolbar))
+        {
+            var logo = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(seelenToolbar), "path:\\s*\"([^\"]+logo-\\d+\\.png)\"");
+            var source = logo.Success ? logo.Groups[1].Value.Replace("\\\\", "\\") : "";
+            if (File.Exists(source))
+            {
+                migrated.TopBarLogo = Path.Combine(DataFolder, "logo.png");
+                File.Copy(source, migrated.TopBarLogo, overwrite: true);
+            }
+        }
+        File.WriteAllText(FilePath, JsonSerializer.Serialize(migrated, Options));
+        Log.Write("settings migrated from " + oldSettings);
+    }
+
     public static AppSettings Load()
     {
         try
         {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            Migrate(Path.Combine(appData, "ClonaDock", "settings.json"),
+                Path.Combine(appData, "com.seelen.seelen-ui", "data", "seelen-fancy-toolbar", "state.yml"));
             if (File.Exists(FilePath))
             {
                 var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Options);

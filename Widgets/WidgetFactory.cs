@@ -1,6 +1,6 @@
-using ClonaDock.Core;
+using Shft.Core;
 
-namespace ClonaDock.Widgets;
+namespace Shft.Widgets;
 
 public static class WidgetFactory
 {
