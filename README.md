@@ -1,49 +1,65 @@
-# shft.
+<p align="center">
+  <img src="branding/shft-logo-white.svg#gh-dark-mode-only" alt="shft." height="72">
+  <img src="branding/shft-logo-black.svg#gh-light-mode-only" alt="shft." height="72">
+</p>
 
-Ambiente de desktop para Windows num único app nativo: barra superior, Dock, Central de Controle e Applications, com a mesma identidade visual. C# / .NET 8 (WPF), sem WebView.
+<p align="center">A minimal desktop customization experience for Windows.</p>
 
-Substitui o ClonaDock e o Seelen UI modificado. O Dock é o que existia; a barra e os painéis foram escritos para este projeto, usando direto as APIs do Windows.
+shft. brings a top bar, a dock, a control center and an app launcher together in a single native app. It is written in C# and WPF, with no web view, and talks directly to Windows.
 
-## O que faz
+![The shft. settings window](docs/images/settings-top-bar.png)
 
-- **Barra superior** em cada monitor: logo (clique: menu do usuário; botão direito: trocar), nome, app em foco e os menus clássicos dele quando existem, memória (clique libera RAM ociosa), ícones fixados da bandeja, Bluetooth, rede, volume (a roda do mouse ajusta), notificações, bandeja, Central de Controle e relógio/calendário.
-- **Três fundos para a barra:** sólido, translúcido e adaptativo. No adaptativo ela fica transparente e cada ponta escolhe texto claro ou escuro pelo que está atrás, com uma camada suave quando o fundo é misto.
-- **Central de Controle:** rede, Bluetooth e dispositivos pareados, mídia em reprodução, modo escuro, HDR, luz noturna, limpar RAM, brilho por monitor (DDC/CI), volume e microfone com escolha de dispositivo, bateria quando há, energia.
-- **Applications:** busca estilo Spotlight de todos os apps do Windows, incluindo os da Store. Setas, Enter e Esc; favoritos e recentes; aceita caminho, endereço e programa do PATH.
-- **Dock:** ampliação, apps abertos, pastas, 13 widgets, Lixeira e selos, como antes.
-- **Configurações** centralizadas; quase tudo aplica na hora.
+![The shft. top bar](docs/images/top-bar.png)
 
-## Compilar e executar
+## Features
 
-Requisitos: Windows 10 (build 19041) ou superior e .NET 8 SDK. Detalhes em [docs/onboarding.md](docs/onboarding.md).
+- **Top bar:** logo, focused app and its classic menus, memory, system tray icons, Bluetooth, network, volume, notifications and clock, on every monitor.
+- **Three bar styles:** solid, translucent, or adaptive, where each end of the bar picks light or dark text from what is behind it.
+- **Control Center:** network, Bluetooth, media, dark mode, HDR, night light, per-monitor brightness over DDC/CI, volume and microphone with device selection.
+- **Applications:** a Spotlight-style search over every Windows app, Store apps included, driven from the keyboard, with favourites and recents.
+- **Dock:** magnification, running apps, folders, badges and 13 live widgets.
+- **Light on resources:** about 80 MB of private memory and under 0.5% of one core at idle, measured with the dock and bar running.
+
+The interface is in Brazilian Portuguese.
+
+## Requirements
+
+Windows 10 version 2004 (build 19041) or later, 64-bit. The installer includes the .NET runtime.
+
+## Installation
+
+Download `shft.-Setup-<version>.exe` from [Releases](https://github.com/rodolfoxm/shft/releases/latest). It installs for your user, without administrator rights. A portable `.zip` is available there too.
+
+**The builds are not code-signed.** Windows SmartScreen may show "Windows protected your PC": choose **More info**, then **Run anyway**. `SHA256SUMS.txt` in each release lets you verify the download.
+
+Updating keeps your preferences, which live in `%APPDATA%\shft`. Uninstalling asks before deleting them, and restores the Windows taskbar.
+
+| Command | Effect |
+|---|---|
+| `shft.exe --quit` | Quits cleanly, restoring the taskbar and reserved screen space |
+| `shft.exe --toggle-apps` | Opens or closes Applications |
+| `shft.exe --toggle-controls` | Opens or closes the Control Center |
+
+## Building
+
+You need the .NET 8 SDK. For the installer, also [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 
 ```powershell
 dotnet build shft.csproj
 dotnet test tests/shft.Tests
-dotnet publish shft.csproj -c Release -r win-x64 --self-contained false -p:PublishReadyToRun=true -o ../shft-app
+./scripts/build-release.ps1   # installer, portable zip and checksums in artifacts/
 ```
 
-| Comando | Efeito |
-|---|---|
-| `shft.exe` | Abre, ou mostra as Configurações se já estiver aberto |
-| `shft.exe --quit` | Encerra de forma limpa, restaurando a barra de tarefas e o espaço reservado |
-| `shft.exe --toggle-apps` | Abre ou fecha Applications (útil no Stream Deck) |
-| `shft.exe --toggle-controls` | Abre ou fecha a Central de Controle |
+`scripts/make-branding.ps1` regenerates every logo and icon from one geometry. Pushing a tag such as `v1.0.1` that matches the version in `shft.csproj` builds and publishes a release through GitHub Actions.
 
-`--watchdog <pid>` e `--purge` são de uso interno. A variável `SHFT_DATA` aponta o app para outra pasta de dados, para testar ao lado da cópia em uso.
+Project documentation, in Portuguese: [architecture](docs/architecture.md), [design](docs/design.md), [quality](docs/quality.md).
 
-## Onde ficam os dados
+## Credits
 
-Pasta `%APPDATA%\shft`. Na primeira execução, as configurações de `%APPDATA%\ClonaDock` e a logo da barra do Seelen são copiadas para lá; os originais ficam intactos.
+Built with [.NET](https://dotnet.microsoft.com), WPF, [Microsoft.Data.Sqlite](https://github.com/dotnet/efcore), [Inno Setup](https://jrsoftware.org/isinfo.php), [xUnit](https://xunit.net) and Segoe Fluent Icons. Weather by [Open-Meteo](https://open-meteo.com).
 
-| Arquivo | Conteúdo |
-|---|---|
-| `settings.json` | Configurações e itens do Dock (troca atômica via `.tmp`) |
-| `settings.json.broken` | Cópia do arquivo quando a leitura falha |
-| `logo.png` | Logo da barra |
-| `shft.log` | Log de diagnóstico; passa para `.old` ao chegar a 512 KB |
-| `taskbar-restore.json` | Marcador temporário enquanto a barra de tarefas está oculta |
+The experience draws on [Seelen UI](https://github.com/eythaann/Seelen-UI) and PrimoDock as references; no code from them is included. See [third-party notices](THIRD-PARTY-NOTICES.md).
 
-## Documentação
+## License
 
-[Produto](PRODUCT.md), [Arquitetura](docs/architecture.md), [Design](docs/design.md), [Preparação local](docs/onboarding.md), [Qualidade](docs/quality.md), [Setup](docs/setup.md), [Avisos de terceiros](THIRD-PARTY-NOTICES.md), [Instruções para agentes](AGENTS.md).
+[PolyForm Noncommercial 1.0.0](LICENSE.md).

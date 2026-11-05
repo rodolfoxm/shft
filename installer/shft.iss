@@ -108,7 +108,11 @@ begin
   end;
   for I := 1 to 50 do
   begin
-    if not CheckForMutexes(AppMutex) then Exit;
+    if not CheckForMutexes(AppMutex) then
+    begin
+      Sleep(2500); { the taskbar watchdog outlives the app by a moment and keeps the files in use }
+      Exit;
+    end;
     Sleep(200);
   end;
   Result := False;

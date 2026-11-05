@@ -14,6 +14,8 @@ Ambiente de desktop para Windows (barra superior, Dock, Central de Controle, App
 - Tipos: compilador C# com `Nullable` habilitado
 - Testes: `dotnet test tests/shft.Tests` (xUnit; lógica pura, sem janelas nem estado do Windows)
 - Verificar tudo: `dotnet build shft.csproj` e `dotnet test tests/shft.Tests`
+- Empacotar: `./scripts/build-release.ps1` (instalador, zip portátil e checksums em `artifacts/`); `scripts/make-branding.ps1` regenera logos e ícones
+- Publicar: tag `vX.Y.Z` igual à `Version` do `shft.csproj`; o workflow nunca sobrescreve uma release existente
 - Rodar ao lado da cópia em uso: defina `SHFT_DATA` para uma pasta temporária com `Taskbar: Keep`, `StartWithWindows: false`, `TopBarReserve: false`; o build em `bin/` tem o mesmo mutex da cópia em uso, então encerre o shft. publicado antes (pedir ao usuário)
 
 ## Regras do projeto
@@ -24,6 +26,9 @@ Ambiente de desktop para Windows (barra superior, Dock, Central de Controle, App
 - Arquivos em UTF-8 (há textos acentuados); evite ferramentas que regravem com outra codificação.
 - O código do Seelen UI é AGPL-3.0: use-o só como referência de comportamento, nunca copie código, ícones ou recursos ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 - `TrayHost` fica no caminho de `Shell_NotifyIcon` e das mensagens de app bar de todo o sistema: tudo que recebe tem de seguir para o Explorer, e nada ali pode bloquear.
+- O visual da janela de Configurações vive em `Ui/SettingsTheme.xaml` e `Ui/SettingsKit.cs`, mesclados só nela. Não leve esse tema para barra, Dock, Central ou Applications.
+- Nunca mude o `AppId` de `installer/shft.iss`: é ele que faz a atualização não virar segunda instalação.
+- Capturas para o README: só janelas do app, com dados neutros. Barra sobre tela cheia e Central com mídia tocando expõem o que o usuário está vendo.
 - Não acione de verdade HDR, luz noturna, Bluetooth ou brilho em testes sem pedir: são estado do usuário.
 - Rede só no widget de clima (Open-Meteo). Não adicione outras chamadas sem pedido.
 

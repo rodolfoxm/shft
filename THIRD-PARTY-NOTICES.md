@@ -7,7 +7,9 @@
 | Microsoft.Data.Sqlite | MIT | Ler o banco local de notificações do Windows para os selos do Dock |
 | SQLitePCLRaw | Apache-2.0 | Dependência do item acima |
 | SQLite (e_sqlite3) | Domínio público | Dependência do item acima |
+| .NET Runtime e Windows Desktop Runtime | MIT | Incluídos no instalador e no pacote portátil |
 | xUnit (somente testes) | Apache-2.0 | Testes automatizados; não vai no app publicado |
+| Inno Setup (somente build) | Licença própria, permite distribuir instaladores | Gera o instalador; não é uma dependência do app |
 
 ## Referências sem código copiado
 

@@ -6,7 +6,7 @@ O Dock (ClonaDock) e a barra superior (Seelen UI modificado com logo própria) r
 
 Sucesso medido: Dock e barra juntos com menos de 100 MB privados e menos de 0,5% de um núcleo em repouso (medido em 04/11/2026: 80 MB e 0,08%).
 
-Uso pessoal (suposição: não há licenciamento, instalador nem distribuição).
+Distribuído pelo GitHub Releases, com instalador por usuário e pacote portátil, sob a licença PolyForm Noncommercial 1.0.0.
 
 ## Público e papéis
 
@@ -36,7 +36,7 @@ Uso pessoal (suposição: não há licenciamento, instalador nem distribuição)
 
 ## Fora de escopo (não implementado)
 
-- Instalador, atualização automática, licenciamento (não há no código).
+- Atualização automática dentro do app; assinatura de código.
 - Internacionalização: só pt-BR.
 - Qualquer coisa que dependa de código do PrimoDock original.
 

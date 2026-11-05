@@ -28,6 +28,8 @@ ESLint e o perfil de lint tipado do toolkit não se aplicam: não há JavaScript
 
 O resto é verificação em execução, com o app ao lado da cópia em uso (`SHFT_DATA`), operado por UI Automation e sem entrada simulada na área de trabalho.
 
+A janela de Configurações foi percorrida nas 11 páginas, na maior e na menor largura, com persistência conferida em switch, lista e texto. O instalador foi testado de ponta a ponta em 04/11/2026: instalação, atualização de 0.9.0 para 1.0.0 com o app aberto, instalação com o app aberto em outra pasta e desinstalação, sempre com o arquivo de preferências idêntico.
+
 Medição em 04/11/2026, com Dock e barra, um minuto em repouso: 0,08% de um núcleo, 80 MB privados, 53 MB em uso, 23 threads. Referência no mesmo dia: Seelen 742 MB em 10 processos.
 
 ## Dependências (auditoria de 21/10/2026)

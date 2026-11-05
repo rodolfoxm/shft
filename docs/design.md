@@ -43,7 +43,20 @@ Os valores de cor ficam nesses arquivos; este documento não os repete. Padrões
 
 ## Janela de Configurações
 
-Janela de 860x660 (mínimo 720x480), navegação lateral e páginas em cartões com linhas "rótulo, ajuda, controle", clara ou escura conforme o tema. Mudanças aplicam na hora.
+Tem identidade própria e superfícies sólidas, sem vidro. Os tokens ficam em `Ui/SettingsTheme.xaml`, mesclado só nessa janela: barra, Dock e painéis seguem o tema compartilhado. Ela é sempre escura; "Claro ou escuro" vale para os outros componentes.
+
+| Token | Cor |
+|---|---|
+| Fundo principal | `#0F1114` |
+| Sidebar | `#171A1F` |
+| Superfícies | `#23272E` |
+| Superfície elevada | `#323943` |
+| Divisórias | `#343941` |
+| Texto principal | `#E6E7EA` |
+| Texto secundário | `#9CA3AF` |
+| Destaque | `#8EA4FF` |
+
+Os componentes ficam em `Ui/SettingsKit.cs`: página, seção, cartão, linha, botão, switch, slider, lista, campo e captura de atalho. Uma linha indisponível diz o motivo no lugar da descrição, e um atalho ocupado mostra o erro na própria linha. Espaçamento em múltiplos de 4 px; janela de 960x680, mínimo 760x480.
 
 | Página | Conteúdo |
 |---|---|
@@ -58,6 +71,10 @@ Janela de 860x660 (mínimo 720x480), navegação lateral e páginas em cartões 
 | Inicialização e sistema | Iniciar com o Windows, barra de tarefas |
 | Widgets | Largura, clima, widgets |
 | Sobre | Versão, créditos, pasta de dados, encerrar |
+
+## Marca
+
+Símbolo de duas barras diagonais paralelas, com pontas arredondadas. `scripts/make-branding.ps1` gera tudo em `branding/`, o `Assets/shft.ico` e as imagens do instalador a partir de uma única geometria. O nome é sempre `shft.`, em minúsculas e com o ponto.
 
 ## Widgets (13)
 

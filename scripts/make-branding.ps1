@@ -55,7 +55,7 @@ function Bmp($draw, $w, $h, $file) {
 # SVG: symbol and horizontal logo, white and black. The word is outlines, so no font is needed to show it.
 $word = Word-Geometry 64
 $wordBounds = $word.Bounds
-$wordPath = $word.GetFlattenedPathGeometry(0.05, 'Relative').ToString([Globalization.CultureInfo]::InvariantCulture) -replace '^F1', 'M' -replace '^F0', 'M'
+$wordPath = $word.GetFlattenedPathGeometry(0.05, 'Relative').ToString([Globalization.CultureInfo]::InvariantCulture) -replace '^F[01]', ''
 foreach ($v in @(@('white', $white), @('black', $black))) {
     $name, $hex = $v
     Set-Content (Join-Path $out "shft-symbol-$name.svg") -Encoding UTF8 -Value "<svg xmlns=`"http://www.w3.org/2000/svg`" viewBox=`"0 0 100 100`" role=`"img`" aria-label=`"shft.`">$(Bars-Svg $hex)</svg>"
