@@ -133,7 +133,9 @@ public sealed class AppSettings
     public bool TopBarShowMemory { get; set; } = true;
     /// <summary>.NET date format of the clock.</summary>
     public string TopBarClockFormat { get; set; } = "ddd d MMM, HH:mm";
-    /// <summary>Tray icons kept on the bar (lower-case exe paths); the rest live in the tray panel.</summary>
+    /// <summary>Order of the bar's right side, as the user dragged it; empty is the default order.</summary>
+    public List<string> TopBarOrder { get; set; } = new();
+    /// <summary>Tray icons kept on the bar (lower-case exe paths), in bar order; the rest live in the tray panel.</summary>
     public List<string> PinnedTray { get; set; } = new();
 
     // Panels

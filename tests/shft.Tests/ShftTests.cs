@@ -88,6 +88,23 @@ public class AppSearchTests
     [Fact] public void Bad_characters_are_refused() => Assert.Null(AppSearch.Direct("a<b|c", _ => true, @"C:\t"));
 }
 
+public class BarOrderTests
+{
+    static readonly string[] Defaults = { "a", "b", "c", "d" };
+
+    [Fact] public void Empty_is_the_default_order() => Assert.Equal(Defaults, BarOrder.Arrange(Defaults, Array.Empty<string>()));
+    [Fact] public void Saved_order_wins() => Assert.Equal(new[] { "d", "a", "c", "b" }, BarOrder.Arrange(Defaults, new[] { "d", "a", "c", "b" }));
+    [Fact] public void Unknown_keys_are_dropped() => Assert.Equal(Defaults, BarOrder.Arrange(Defaults, new[] { "a", "old", "b", "c", "d" }));
+    [Fact] public void Repeated_keys_count_once() => Assert.Equal(Defaults, BarOrder.Arrange(Defaults, new[] { "a", "a", "b", "c", "d" }));
+    [Fact] public void A_new_item_lands_after_its_default_neighbour() => Assert.Equal(new[] { "d", "a", "b", "c" }, BarOrder.Arrange(Defaults, new[] { "d", "a", "c" }));
+    [Fact] public void A_new_first_item_lands_first() => Assert.Equal(new[] { "a", "c", "b", "d" }, BarOrder.Arrange(Defaults, new[] { "c", "b", "d" }));
+    [Fact] public void Every_default_key_is_kept() => Assert.Equal(BarOrder.Default.Length, BarOrder.Arrange(BarOrder.Default, new[] { "clock" }).Count);
+
+    [Fact] public void Pointer_left_of_everything_is_first() => Assert.Equal(0, BarOrder.Target(new double[] { 10, 30, 50 }, 5));
+    [Fact] public void Pointer_between_centres() => Assert.Equal(2, BarOrder.Target(new double[] { 10, 30, 50 }, 40));
+    [Fact] public void Pointer_right_of_everything_is_last() => Assert.Equal(3, BarOrder.Target(new double[] { 10, 30, 50 }, 99));
+}
+
 public class WinTapTests
 {
     const int Win = WinTap.LeftWin, E = 0x45;

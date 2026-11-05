@@ -244,6 +244,11 @@ public sealed class SettingsWindow : Window
         Row(content, "Logo", "Também dá para trocar com o botão direito na logo.", logo, "\uEB9F");
         Row(content, "Pintar a logo com a cor do texto", "Para logos de uma cor só, como a da Apple.", Toggle(S.TopBarLogoTint, v => S.TopBarLogoTint = v), "\uE790");
         Row(content, "Nome", "Vazio usa o nome do Windows.", Field(S.TopBarUserName, v => S.TopBarUserName = v), "\uE77B");
+        Row(content, "Ordem dos ícones", "Arraste os ícones na própria barra para reorganizar.", Btn("Restaurar", () =>
+        {
+            S.TopBarOrder.Clear();
+            Commit(now: true);
+        }), "\uE8CB");
         Row(content, "Mostrar o nome", null, Toggle(S.TopBarShowUser, v => S.TopBarShowUser = v), "\uE77B");
         Row(content, "Mostrar o app em foco", null, Toggle(S.TopBarShowApp, v => S.TopBarShowApp = v), "\uE737");
         Row(content, "Mostrar a memória", "Clicar nela libera a RAM ociosa; o Windows pede confirmação.", Toggle(S.TopBarShowMemory, v => S.TopBarShowMemory = v), Glyph.Memory);

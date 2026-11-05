@@ -156,12 +156,18 @@ public sealed class MenuBarWindow : Window
         _memoryButton.ToolTip = "Clique para liberar a RAM ociosa";
 
         _tray = new StackPanel { Orientation = Orientation.Horizontal };
-        _right.Items.Children.Add(_tray);
+        _trayDrag = new BarDrag(_tray);
+        _trayDrag.Moved += SavePinOrder;
+        var trayGroup = new StackPanel { Orientation = Orientation.Horizontal };
+        trayGroup.Children.Add(_tray);
         Button? trayButton = null;
         trayButton = PanelItem(Glyph.Text(Glyph.Down, 11), "Apps em segundo plano", () => Panel("tray", () => new TrayPanel(), trayButton!));
+        _right.Items.Children.Remove(trayButton);
+        trayGroup.Children.Add(trayButton);
+        _right.Items.Children.Add(trayGroup);
 
         _net = Glyph.Text(Glyph.Ethernet, 14);
-        PanelItem(_net, "Rede", () => Panel("network", () => new ControlCenterWindow("network"), _controls));
+        var network = PanelItem(_net, "Rede", () => Panel("network", () => new ControlCenterWindow("network"), _controls));
         _bt = Glyph.Text(Glyph.Bluetooth, 14);
         _btButton = PanelItem(_bt, "Bluetooth", () => Panel("bluetooth", () => new ControlCenterWindow("bluetooth"), _controls));
         _volume = Glyph.Text(Glyph.Volume, 14);
@@ -184,32 +190,73 @@ public sealed class MenuBarWindow : Window
         _clock = new TextBlock { FontWeight = FontWeights.SemiBold, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center };
         Button? clock = null;
         clock = PanelItem(_clock, "Calendário", () => Panel("clock", () => new CalendarPanel(), clock!));
+
+        _slots = new Dictionary<string, FrameworkElement>
+        {
+            ["memory"] = _memoryButton, ["tray"] = trayGroup, ["network"] = network, ["bluetooth"] = _btButton,
+            ["volume"] = volume, ["bell"] = bellButton, ["controls"] = _controls, ["clock"] = clock,
+        };
+        _drag = new BarDrag(_right.Items);
+        foreach (var slot in _slots.Values) _drag.Attach(slot == trayGroup ? trayButton : slot, slot);
+        foreach (var drag in new[] { _drag, _trayDrag })
+        {
+            drag.Started += () =>
+            {
+                _keyAtPress = null;
+                _open?.SafeClose();
+                _open = null;
+            };
+        }
+        _drag.Moved += SaveOrder;
+    }
+
+    void SaveOrder()
+    {
+        SettingsStore.Current.TopBarOrder = _right.Items.Children.OfType<FrameworkElement>().Select(c => _slots.First(s => s.Value == c).Key).ToList();
+        SettingsStore.Save();
+    }
+
+    void SavePinOrder()
+    {
+        var pins = SettingsStore.Current.PinnedTray;
+        var shown = _tray.Children.OfType<Button>().Select(b => (string)b.Tag).Distinct().ToList();
+        SettingsStore.Current.PinnedTray = shown.Concat(pins.Where(p => !shown.Contains(p))).ToList();
+        SettingsStore.Save();
+    }
+
+    void ApplyOrder()
+    {
+        var order = BarOrder.Arrange(BarOrder.Default, SettingsStore.Current.TopBarOrder).Select(k => _slots[k]).ToList();
+        if (_right.Items.Children.OfType<FrameworkElement>().SequenceEqual(order)) return;
+        _right.Items.Children.Clear();
+        foreach (var item in order) _right.Items.Children.Add(item);
     }
 
     /// <summary>
-    /// A bar item that toggles a panel. It acts on the press: by the release, losing focus may have closed the panel
-    /// already, and the click would read as a request to open it again.
+    /// A bar item that toggles a panel. It remembers what was open at the press: by the release, losing focus may
+    /// have closed the panel already, and the click would read as a request to open it again.
     /// </summary>
     Button PanelItem(object content, string name, Action click)
     {
         var b = Item(_right, content, name, click);
-        b.ClickMode = ClickMode.Press;
+        b.PreviewMouseLeftButtonDown += (_, _) => _keyAtPress = _open != null ? _openKey : null;
+        b.PreviewMouseLeftButtonUp += (_, _) => Dispatcher.BeginInvoke(() => _keyAtPress = null); // after the click
         return b;
     }
 
     FlyoutWindow? _open;
-    string? _openKey;
+    string? _openKey, _keyAtPress;
+    BarDrag _drag = null!, _trayDrag = null!;
+    Dictionary<string, FrameworkElement> _slots = null!;
 
     /// <summary>Opens a panel under the bar; the same button again closes it.</summary>
     void Panel(string key, Func<FlyoutWindow> create, FrameworkElement anchor)
     {
-        if (_open != null)
-        {
-            bool same = _openKey == key;
-            _open.SafeClose();
-            _open = null;
-            if (same) return;
-        }
+        var wasOpen = _keyAtPress ?? (_open != null ? _openKey : null);
+        _keyAtPress = null;
+        _open?.SafeClose();
+        _open = null;
+        if (wasOpen == key) return;
         _open = create();
         _openKey = key;
         var panel = _open;
@@ -358,6 +405,7 @@ public sealed class MenuBarWindow : Window
         _memoryButton.Visibility = s.TopBarShowMemory ? Visibility.Visible : Visibility.Collapsed;
         foreach (var t in new[] { _user, _app, _memory, _clock }) t.Foreground = t == _user || t == _app ? _left.Text : _right.Text;
         SetLogo(s);
+        ApplyOrder();
         Place();
         OnData();
         OnClock();
@@ -486,7 +534,7 @@ public sealed class MenuBarWindow : Window
     {
         _tray.Children.Clear();
         var pins = SettingsStore.Current.PinnedTray;
-        foreach (var e in TrayHost.Instance.Items.Where(i => pins.Contains(i.PinKey)))
+        foreach (var e in TrayHost.Instance.Items.Where(i => pins.Contains(i.PinKey)).OrderBy(i => pins.IndexOf(i.PinKey)))
         {
             var entry = e;
             var image = new Image { Source = e.Icon, Width = 16, Height = 16 };
@@ -496,7 +544,9 @@ public sealed class MenuBarWindow : Window
             b.VerticalAlignment = VerticalAlignment.Center;
             b.ToolTip = e.Tip.Length > 0 ? e.Tip : e.Name;
             AutomationProperties.SetName(b, e.Name);
+            b.Tag = e.PinKey;
             b.MouseRightButtonUp += (_, ev) => { ev.Handled = true; TrayHost.Instance.Click(entry, right: true); };
+            _trayDrag.Attach(b, b);
             _tray.Children.Add(b);
         }
     }
