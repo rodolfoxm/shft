@@ -34,7 +34,7 @@ Assets/dock.ico       ícone do app e da bandeja (recurso WPF)
 | Componente | Responsabilidade |
 |---|---|
 | `Program` | Trata `--watchdog <pid>`, `--quit` e a checagem de instância única (mutex) antes de criar o WPF; só então instancia `App` |
-| `App` | Cria `DockWindow`, `TrayIcon`, escuta eventos nomeados (`shft..ShowSettings`, `shft..Quit`) em threads de fundo, aplica barra de tarefas e Run key, trata exceções não tratadas (log) |
+| `App` | Cria `DockWindow`, `TrayIcon`, escuta eventos nomeados (`shft.ShowSettings`, `shft.Quit`) em threads de fundo, aplica barra de tarefas e Run key, trata exceções não tratadas (log) |
 | `SettingsStore` | Carrega/salva `AppSettings` em `%APPDATA%\shft\settings.json`; evento estático `Changed` dispara reaplicação |
 | `Theme` | Resolve cores a partir das configurações e do modo de cor do Windows (registro `Personalize`/`DWM`) |
 | `DockWindow` | Janela transparente, sem foco (`WS_EX_NOACTIVATE`), posicionada na borda; registra a app bar; `DispatcherTimer` de 100 ms para auto-ocultar, tela cheia e `TaskbarControl.Enforce` |
@@ -57,8 +57,8 @@ Assets/dock.ico       ícone do app e da bandeja (recurso WPF)
 
 1. `Program.Main` (STA):
    - `--watchdog <pid>`: `TaskbarControl.RunWatchdog` espera o processo terminar e restaura a barra de tarefas se o marcador existir; retorna sem WPF.
-   - `--quit`: sinaliza o evento `shft..Quit`; retorna.
-   - Mutex `shft..SingleInstance`: se já existe, sinaliza `shft..ShowSettings`; retorna.
+   - `--quit`: sinaliza o evento `shft.Quit`; retorna.
+   - Mutex `shft.SingleInstance`: se já existe, sinaliza `shft.ShowSettings`; retorna.
    - Caso contrário `new App()`, `InitializeComponent()`, `Run()` (`ShutdownMode=OnExplicitShutdown`).
 2. `App.OnStartup`: threads ouvintes dos dois eventos; handlers de exceção (log, `TaskbarControl.Restore()` em erro fatal e no fim da sessão); `TaskbarControl.RecoverFromCrash()`; `SettingsStore.Load()`.
 3. `new DockWindow()`, `Show()`, `Controller.Start()` (inicia `WindowTracker`, `ApplySettings`).
