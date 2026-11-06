@@ -173,7 +173,7 @@ public sealed class CountdownWidget : WidgetBase
         if (!DateTime.TryParseExact(text.Trim(), new[] { "dd/MM/yyyy HH:mm", "dd/MM/yyyy", "d/M/yyyy", "d/M/yyyy H:mm" },
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
-            MessageBox.Show("Data não reconhecida. Use dd/mm/aaaa.", "shft.");
+            MessageBox.Show("Data não reconhecida. Use dd/mm/aaaa.", "shft.", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
             return;
         }
         var label = InputDialog.Ask("Contagem regressiva", "Contando até… (opcional)", Item.Get("label") ?? "");

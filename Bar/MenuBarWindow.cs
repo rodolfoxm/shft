@@ -276,7 +276,8 @@ public sealed class MenuBarWindow : Window
 
     public static void Confirm(string question, Action action)
     {
-        if (MessageBox.Show(question, "shft.", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK) action();
+        // No owner: a panel that loses focus closes itself, and an owned dialog would vanish with it.
+        if (MessageBox.Show(question, "shft.", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel, MessageBoxOptions.DefaultDesktopOnly) == MessageBoxResult.OK) action();
     }
 
     void OpenAppMenu()

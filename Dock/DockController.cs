@@ -445,7 +445,7 @@ public sealed class DockController : IDisposable
         catch (Exception ex)
         {
             Log.Write($"could not open {path}: {ex.Message}");
-            MessageBox.Show($"Não foi possível abrir:\n{path}\n\n{ex.Message}", "shft.", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"Não foi possível abrir:\n{path}\n\n{ex.Message}", "shft.", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly); // Applications is closing
             return false;
         }
     }
