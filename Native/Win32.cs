@@ -184,6 +184,9 @@ public static class Win32
     /// never recomputes the work area (measured), so the stand-in steps aside and the call reaches Explorer itself.</summary>
     public static UIntPtr AppBarMessage(uint msg, ref APPBARDATA data)
     {
+        // Only the calls that change the work area. The taskbar check runs every second, and every step aside is a
+        // moment in which a tray icon that appears reaches Explorer only and never shows up in shft.
+        if (msg is not (ABM_NEW or ABM_REMOVE or ABM_QUERYPOS or ABM_SETPOS)) return SHAppBarMessage(msg, ref data);
         TrayHost.Instance.StepAside(true);
         try { return SHAppBarMessage(msg, ref data); }
         finally { TrayHost.Instance.StepAside(false); }

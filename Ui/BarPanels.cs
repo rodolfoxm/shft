@@ -121,8 +121,8 @@ public sealed class TrayPanel : FlyoutWindow
             var name = new StackPanel { Orientation = Orientation.Horizontal };
             name.Children.Add(new Image { Source = e.Icon, Width = 18, Height = 18, Margin = new Thickness(0, 0, 12, 0) });
             name.Children.Add(new TextBlock { Text = e.Name, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 170, TextTrimming = TextTrimming.CharacterEllipsis });
-            var open = FlatButton(name, () => { SafeClose(); TrayHost.Instance.Click(e, right: false); }, 8);
-            open.MouseRightButtonUp += (_, ev) => { ev.Handled = true; SafeClose(); TrayHost.Instance.Click(e, right: true); };
+            var open = FlatButton(name, () => CloseThen(() => TrayHost.Instance.Click(e, right: false)), 8);
+            open.MouseRightButtonUp += (_, ev) => { ev.Handled = true; CloseThen(() => TrayHost.Instance.Click(e, right: true)); };
             open.ToolTip = e.Tip.Length > 0 ? e.Tip : null;
             row.Children.Add(open);
             _list.Children.Add(row);

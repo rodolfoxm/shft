@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -79,31 +80,95 @@ public static class SystemMeters
     }
 }
 
-/// <summary>"Open shft. when Windows starts" through the per-user Run key.</summary>
+/// <summary>
+/// "Open shft. when Windows starts". A logon task, because Windows holds Run-key apps back for up to a minute after
+/// sign-in (measured: 60 s here, against 2 s for a task). The Run key stays as the fallback when the task can't be made.
+/// </summary>
 public static class StartWithWindows
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    const string Name = "shft", OldName = "ClonaDock";
+    const string Name = "shft", OldName = "ClonaDock", TaskName = "shft";
 
-    public static void Set(bool on)
+    /// <summary>Runs only for this user, without elevation, at normal priority: the scheduler's default (7) would slow the bar for the whole session.</summary>
+    internal static string TaskXml(string user, string exe)
+    {
+        string u = System.Security.SecurityElement.Escape(user), e = System.Security.SecurityElement.Escape(exe);
+        return $"""
+            <?xml version="1.0" encoding="UTF-16"?>
+            <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+              <RegistrationInfo><Description>Abre o shft. ao entrar no Windows.</Description></RegistrationInfo>
+              <Triggers><LogonTrigger><Enabled>true</Enabled><UserId>{u}</UserId></LogonTrigger></Triggers>
+              <Principals><Principal id="Author"><UserId>{u}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
+              <Settings>
+                <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+                <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+                <Priority>4</Priority>
+              </Settings>
+              <Actions Context="Author"><Exec><Command>{e}</Command><Arguments>--startup</Arguments></Exec></Actions>
+            </Task>
+            """;
+    }
+
+    static bool Schtasks(string args)
+    {
+        using var p = Process.Start(new ProcessStartInfo("schtasks.exe", args)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        });
+        if (p == null) return false;
+        p.StandardOutput.ReadToEnd();
+        p.StandardError.ReadToEnd();
+        return p.WaitForExit(15000) && p.ExitCode == 0;
+    }
+
+    static bool CreateTask(string exe)
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"shft-task-{Environment.ProcessId}.xml");
+        try
+        {
+            File.WriteAllText(file, TaskXml(System.Security.Principal.WindowsIdentity.GetCurrent().Name, exe), System.Text.Encoding.Unicode);
+            return Schtasks($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F");
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    /// <summary>Off the UI thread: schtasks takes a moment, and startup must not wait for it.</summary>
+    public static void Set(bool on) => Task.Run(() =>
     {
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
             if (key == null) return;
+            key.DeleteValue(OldName, throwOnMissingValue: false); // shft. replaces the old Dock at sign-in
+            string how;
             if (on && Environment.ProcessPath is string exe)
             {
-                key.SetValue(Name, $"\"{exe}\"");
-                key.DeleteValue(OldName, throwOnMissingValue: false); // shft. replaces the old Dock at sign-in
+                bool task = CreateTask(exe);
+                if (task) key.DeleteValue(Name, throwOnMissingValue: false);
+                else key.SetValue(Name, $"\"{exe}\" --startup");
+                how = task ? "logon task" : "Run key (task refused)";
             }
-            else key.DeleteValue(Name, throwOnMissingValue: false);
-            Core.Log.Write($"start with Windows -> {on}: {string.Join(", ", key.GetValueNames().Where(n => n is Name or OldName))}");
+            else
+            {
+                Schtasks($"/Delete /TN \"{TaskName}\" /F");
+                key.DeleteValue(Name, throwOnMissingValue: false);
+                how = "off";
+            }
+            Core.Log.Write($"start with Windows -> {how}");
         }
         catch (Exception ex)
         {
             Core.Log.Write("start with Windows not changed: " + ex.Message);
         }
-    }
+    });
 }
 
 public static class KnownFolders

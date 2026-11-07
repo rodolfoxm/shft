@@ -300,8 +300,7 @@ public sealed class SpotlightWindow : FlyoutWindow
         s.AppsRecent.Insert(0, app.Path);
         if (s.AppsRecent.Count > 12) s.AppsRecent.RemoveRange(12, s.AppsRecent.Count - 12);
         SettingsStore.Save(notify: false);
-        SafeClose();
-        DockController.Launch(app.Path);
+        CloseThen(() => DockController.Launch(app.Path));
     }
 
     void ShowMenu(AppEntry app)

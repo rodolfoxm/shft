@@ -180,6 +180,30 @@ public class BarDragStuckTests
     }
 }
 
+public class StartupTaskTests
+{
+    [Fact]
+    public void Task_is_valid_xml_and_escapes_paths()
+    {
+        var xml = StartWithWindows.TaskXml(@"PC\Ana & Bia", @"C:\Apps <x>\shft.exe");
+        var doc = System.Xml.Linq.XDocument.Parse(xml);
+        System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
+        Assert.Equal(@"C:\Apps <x>\shft.exe", doc.Descendants(ns + "Command").Single().Value);
+        Assert.Equal("--startup", doc.Descendants(ns + "Arguments").Single().Value);
+        Assert.Equal(@"PC\Ana & Bia", doc.Descendants(ns + "LogonTrigger").Single().Element(ns + "UserId")!.Value);
+    }
+
+    [Fact]
+    public void Task_runs_at_normal_priority_without_elevation()
+    {
+        var doc = System.Xml.Linq.XDocument.Parse(StartWithWindows.TaskXml("u", "x.exe"));
+        System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
+        Assert.Equal("4", doc.Descendants(ns + "Priority").Single().Value);
+        Assert.Equal("LeastPrivilege", doc.Descendants(ns + "RunLevel").Single().Value);
+        Assert.Equal("PT0S", doc.Descendants(ns + "ExecutionTimeLimit").Single().Value);
+    }
+}
+
 public class WinTapTests
 {
     const int Win = WinTap.LeftWin, E = 0x45;

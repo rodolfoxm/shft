@@ -71,6 +71,9 @@ Name: "{autodesktop}\shft."; Filename: "{app}\shft.exe"; Tasks: desktopicon
 ; The app writes this value when "start with Windows" is on; this only removes it on uninstall.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "shft"; Flags: dontcreatekey uninsdeletevalue
 
+[UninstallRun]
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""shft"" /F"; Flags: runhidden; RunOnceId: "RemoveStartupTask"
+
 [Run]
 Filename: "{app}\shft.exe"; Description: "{cm:LaunchProgram,shft.}"; Flags: nowait postinstall skipifsilent
 Filename: "{app}\shft.exe"; Flags: nowait; Check: RestartAfterSilentUpdate

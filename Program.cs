@@ -40,6 +40,7 @@ public static class Program
         SingleInstance = new Mutex(true, "shft.SingleInstance", out bool first);
         if (!first)
         {
+            if (args.Contains("--startup")) return 0; // signed in again, or the task and the Run key both fired
             // Opening the app again while it runs brings up its settings.
             using var show = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEvent);
             show.Set();

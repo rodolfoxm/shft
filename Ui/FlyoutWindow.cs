@@ -98,6 +98,23 @@ public class FlyoutWindow : Window
         set => _content.Child = value;
     }
 
+    /// <summary>
+    /// For panels that start something. The panel vanishes at once and hands its foreground over before the action:
+    /// fading out afterwards, it took the focus back from the app just opened, which then stayed behind other windows.
+    /// </summary>
+    public void CloseThen(Action action)
+    {
+        if (_closing) return;
+        _closing = true;
+        AllowSetForegroundWindow(-1); // ASFW_ANY, while this panel still holds the foreground
+        Hide();
+        action();
+        Dispatcher.BeginInvoke(Close);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool AllowSetForegroundWindow(int processId);
+
     public void SafeClose()
     {
         if (_closing) return;

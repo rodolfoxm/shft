@@ -57,7 +57,14 @@ public sealed class TrayHost : IDisposable
 
     public IReadOnlyList<TrayEntry> Items
     {
-        get { lock (_gate) return _items.Where(i => !i.Hidden && i.Icon != null).ToList(); }
+        get
+        {
+            List<TrayEntry> shown;
+            lock (_gate) shown = _items.Where(i => !i.Hidden).ToList();
+            // An icon whose picture never arrived (it was sent before shft. was listening) still opens its app.
+            foreach (var i in shown.Where(i => i.Icon == null && i.ExePath.Length > 0)) i.Icon = IconLoader.Get(i.ExePath, 32);
+            return shown.Where(i => i.Icon != null).ToList();
+        }
     }
 
     public void Start()
