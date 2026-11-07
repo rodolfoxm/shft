@@ -153,8 +153,10 @@ public static class StartWithWindows
             {
                 bool task = CreateTask(exe);
                 if (task) key.DeleteValue(Name, throwOnMissingValue: false);
-                else key.SetValue(Name, $"\"{exe}\" --startup");
-                how = task ? "logon task" : "Run key (task refused)";
+                // .NET ignores a refused delete, and on this PC something refuses them for shft.exe (PowerShell's go
+                // through). A leftover entry must not start a second copy that opens Settings at every sign-in.
+                if (!task || key.GetValue(Name) != null) key.SetValue(Name, $"\"{exe}\" --startup");
+                how = task ? key.GetValue(Name) == null ? "logon task" : "logon task (Run entry kept, made silent)" : "Run key (task refused)";
             }
             else
             {
