@@ -269,8 +269,8 @@ public sealed class MenuBarWindow : Window
         menu.Items.Add(DockController.Item("Bloquear", SystemActions.Lock));
         menu.Items.Add(DockController.Item("Suspender", SystemActions.Sleep));
         menu.Items.Add(DockController.Item("Sair da conta…", () => Confirm("Sair da conta agora?", SystemActions.SignOut)));
-        menu.Items.Add(DockController.Item("Reiniciar…", () => Confirm("Reiniciar o computador agora?", SystemActions.Restart)));
-        menu.Items.Add(DockController.Item("Desligar…", () => Confirm("Desligar o computador agora?", SystemActions.PowerOff)));
+        menu.Items.Add(DockController.Item("Reiniciar", SystemActions.Restart));
+        menu.Items.Add(DockController.Item("Desligar", SystemActions.PowerOff));
         menu.IsOpen = true;
     }
 

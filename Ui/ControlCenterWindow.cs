@@ -417,8 +417,8 @@ public sealed class ControlCenterWindow : FlyoutWindow
             var menu = new ContextMenu { PlacementTarget = power, Placement = PlacementMode.Top };
             menu.Items.Add(DockController.Item("Bloquear", SystemActions.Lock));
             menu.Items.Add(DockController.Item("Suspender", SystemActions.Sleep));
-            menu.Items.Add(DockController.Item("Reiniciar…", () => MenuBarWindow.Confirm("Reiniciar o computador agora?", SystemActions.Restart)));
-            menu.Items.Add(DockController.Item("Desligar…", () => MenuBarWindow.Confirm("Desligar o computador agora?", SystemActions.PowerOff)));
+            menu.Items.Add(DockController.Item("Reiniciar", SystemActions.Restart));
+            menu.Items.Add(DockController.Item("Desligar", SystemActions.PowerOff));
             menu.IsOpen = true;
         };
         DockPanel.SetDock(power, System.Windows.Controls.Dock.Right);
