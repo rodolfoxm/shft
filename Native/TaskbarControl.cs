@@ -82,6 +82,9 @@ public static class TaskbarControl
 
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
 
+    /// <summary>Windows keys and Ctrl (Ctrl+Esc): the ways left to open Start from the keyboard.</summary>
+    static bool StartKeysHeld() => new[] { 0x5B, 0x5C, 0x11 }.Any(k => (GetAsyncKeyState(k) & 0x8000) != 0);
+
     static Win32.WinEventProc? _showHook;
     static IntPtr _showHookHandle;
 
@@ -97,6 +100,9 @@ public static class TaskbarControl
             if (_mode != TaskbarMode.Hide || idObject != 0 || idChild != 0 || hwnd == IntPtr.Zero) return;
             var cls = Win32.ClassName(hwnd);
             if (cls is not ("Shell_TrayWnd" or "Shell_SecondaryTrayWnd")) return;
+            // No key behind it (the display woke, the pointer touched the edge): hide now, before it can be seen.
+            // Enforce still leaves the bar alone if Start or Task View is in front.
+            if (!StartKeysHeld()) Enforce();
             // The Win key shows the taskbar together with Start: give Start a moment to take the
             // foreground (Enforce leaves the bar alone then) and never act while Win is held.
             var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
