@@ -251,7 +251,7 @@ public sealed class DockWindow : Window
             if (full != _fullScreen)
             {
                 _fullScreen = full;
-                Log.Write(full ? "full screen app in front: hiding the Dock" : "full screen app gone: the Dock comes back");
+                Log.Write((full ? "full screen app in front: hiding the Dock" : "full screen app gone: the Dock comes back") + " | front: " + Monitors.Describe(Win32.GetForegroundWindow()));
                 ApplyVisibility();
             }
         }

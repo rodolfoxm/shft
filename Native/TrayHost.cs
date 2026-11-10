@@ -1,3 +1,5 @@
+using System.IO;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -60,7 +62,8 @@ public sealed class TrayHost : IDisposable
         get
         {
             List<TrayEntry> shown;
-            lock (_gate) shown = _items.Where(i => !i.Hidden).ToList();
+            // Explorer's own icons that never said how to reach them can't be clicked, nor opened another way.
+            lock (_gate) shown = _items.Where(i => !i.Hidden && !(i.CallbackMessage == 0 && IsExplorer(i.ExePath))).ToList();
             // An icon whose picture never arrived (it was sent before shft. was listening) still opens its app.
             foreach (var i in shown.Where(i => i.Icon == null && i.ExePath.Length > 0)) i.Icon = IconLoader.Get(i.ExePath, 32);
             return shown.Where(i => i.Icon != null).ToList();
@@ -249,12 +252,24 @@ public sealed class TrayHost : IDisposable
     }
 
     /// <summary>Delivers a click the way Explorer does, so left and right click menus behave as usual.</summary>
+    static bool IsExplorer(string path) => Path.GetFileName(path).Equals("explorer.exe", StringComparison.OrdinalIgnoreCase);
+
     public void Click(TrayEntry e, bool right)
     {
-        if (e.CallbackMessage == 0 || !Win32.IsWindow(e.Owner))
+        if (!Win32.IsWindow(e.Owner))
         {
+            Log.Write($"tray: {e.Name} is gone, removed");
             lock (_gate) _items.Remove(e);
             Changed?.Invoke();
+            return;
+        }
+        if (e.CallbackMessage == 0)
+        {
+            // Its icon reached shft. without the message to send clicks to (it was announced before shft. listened).
+            // Starting the app again is what brings single-instance apps such as Discord to the front.
+            Log.Write($"tray: {e.Name} has no click message, starting {Path.GetFileName(e.ExePath)}");
+            try { Process.Start(new ProcessStartInfo(e.ExePath) { UseShellExecute = true }); }
+            catch (Exception ex) { Log.Write("tray: could not start it: " + ex.Message); }
             return;
         }
         Win32.GetWindowThreadProcessId(e.Owner, out uint pid);

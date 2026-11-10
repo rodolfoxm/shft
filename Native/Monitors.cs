@@ -37,6 +37,14 @@ public static class Monitors
         return All().FirstOrDefault(m => m.Handle == handle) ?? Pick(-1);
     }
 
+    /// <summary>"game.exe UnityWndClass (0,0)-(1920,1080)" for the log.</summary>
+    public static string Describe(IntPtr window)
+    {
+        Win32.GetWindowThreadProcessId(window, out uint pid);
+        Win32.GetWindowRect(window, out var r);
+        return $"{System.IO.Path.GetFileName(Win32.ProcessPath(pid) ?? "?")} {Win32.ClassName(window)} {r}";
+    }
+
     /// <summary>True when <paramref name="window"/> (normally the foreground one) covers all of the monitor.</summary>
     public static bool IsFullScreen(IntPtr window, MonitorInfo monitor)
     {
