@@ -37,6 +37,31 @@ public static class Monitors
         return All().FirstOrDefault(m => m.Handle == handle) ?? Pick(-1);
     }
 
+    /// <summary>
+    /// A window that comes up over a full-screen game without the player leaving it: Steam's popups, the task
+    /// switcher, Start. Anything smaller than 60% of the screen counts; so do Windows' own switching surfaces.
+    /// </summary>
+    public static bool IsOverlay(string windowClass, RECT window, RECT monitor)
+    {
+        if (windowClass is "XamlExplorerHostIslandWindow" or "Windows.UI.Core.CoreWindow" or "MultitaskingViewFrame" or "ForegroundStaging") return true;
+        long area = (long)Math.Max(0, window.Width) * Math.Max(0, window.Height);
+        long screen = (long)monitor.Width * monitor.Height;
+        return screen > 0 && area * 10 < screen * 6;
+    }
+
+    /// <summary>
+    /// The full-screen window that <see cref="IsFullScreen"/> last saw on <paramref name="monitor"/>, updated for the
+    /// current foreground: kept while it still covers the screen and only an overlay is in front of it.
+    /// </summary>
+    public static IntPtr FullScreenWindow(IntPtr last, IntPtr front, MonitorInfo monitor)
+    {
+        if (IsFullScreen(front, monitor)) return front;
+        if (last == IntPtr.Zero || !Win32.IsWindow(last) || !Win32.IsWindowVisible(last) || Win32.IsIconic(last) || !IsFullScreen(last, monitor)) return IntPtr.Zero;
+        if (front == IntPtr.Zero) return last;
+        Win32.GetWindowRect(front, out var r);
+        return IsOverlay(Win32.ClassName(front), r, monitor.Bounds) ? last : IntPtr.Zero;
+    }
+
     /// <summary>"game.exe UnityWndClass (0,0)-(1920,1080)" for the log.</summary>
     public static string Describe(IntPtr window)
     {

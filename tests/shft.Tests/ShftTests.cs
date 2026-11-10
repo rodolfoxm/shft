@@ -204,6 +204,17 @@ public class StartupTaskTests
     }
 }
 
+public class OverlayTests
+{
+    static readonly RECT Screen = new(0, 0, 1920, 1080);
+
+    [Fact] public void Steam_popup_over_a_game_is_an_overlay() => Assert.True(Monitors.IsOverlay("SDL_app", new RECT(1338, 125, 1725, 910), Screen));
+    [Fact] public void Task_switcher_is_an_overlay() => Assert.True(Monitors.IsOverlay("XamlExplorerHostIslandWindow", new RECT(0, 32, 1920, 1080), Screen));
+    [Fact] public void A_maximized_app_is_a_real_switch() => Assert.False(Monitors.IsOverlay("Chrome_WidgetWin_1", new RECT(-8, 24, 1928, 1088), Screen));
+    [Fact] public void Big_window_is_a_real_switch() => Assert.False(Monitors.IsOverlay("Notepad", new RECT(0, 0, 1600, 900), Screen));
+    [Fact] public void Empty_monitor_is_safe() => Assert.False(Monitors.IsOverlay("x", new RECT(0, 0, 10, 10), new RECT(0, 0, 0, 0)));
+}
+
 public class WinTapTests
 {
     const int Win = WinTap.LeftWin, E = 0x45;

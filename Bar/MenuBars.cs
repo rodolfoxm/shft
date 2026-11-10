@@ -12,6 +12,7 @@ namespace Shft.Bar;
 public sealed class MenuBars : IDisposable
 {
     readonly List<MenuBarWindow> _bars = new();
+    readonly Dictionary<MenuBarWindow, IntPtr> _games = new();
     readonly DispatcherTimer _clock = new();
     readonly DispatcherTimer _memory = new() { Interval = TimeSpan.FromSeconds(5) };
     readonly DispatcherTimer _watch = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -145,7 +146,9 @@ public sealed class MenuBars : IDisposable
         bool anyVisible = false;
         foreach (var b in _bars)
         {
-            bool full = SettingsStore.Current.HideOnFullScreen && Monitors.IsFullScreen(fg, b.Monitor);
+            var game = Monitors.FullScreenWindow(_games.GetValueOrDefault(b), fg, b.Monitor);
+            _games[b] = game;
+            bool full = SettingsStore.Current.HideOnFullScreen && game != IntPtr.Zero;
             if (full == b.IsVisible) b.SetHiddenForFullScreen(full);
             anyVisible |= !full;
             b.EnsureReserved();

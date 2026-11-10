@@ -247,7 +247,8 @@ public sealed class DockWindow : Window
 
         if (_tick % 5 == 0)
         {
-            bool full = ForegroundIsFullScreen();
+            _game = Monitors.FullScreenWindow(_game, Win32.GetForegroundWindow(), _monitor);
+            bool full = _game != IntPtr.Zero;
             if (full != _fullScreen)
             {
                 _fullScreen = full;
@@ -314,7 +315,7 @@ public sealed class DockWindow : Window
         return r.Contains(p);
     }
 
-    bool ForegroundIsFullScreen() => Monitors.IsFullScreen(Win32.GetForegroundWindow(), _monitor);
+    IntPtr _game;
 
     protected override void OnClosed(EventArgs e)
     {
