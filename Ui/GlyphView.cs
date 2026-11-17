@@ -90,6 +90,9 @@ public sealed class GlyphView : FrameworkElement
         [Glyph.Close] = S(null, "M6 6l12 12M18 6L6 18"),
         [Glyph.Today] = S(null, "M4 11.5L12 4l8 7.5M6.5 9.5V20h11V9.5"),
         [Glyph.Battery] = S("F0 M4 7h14a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM4 9v6h14V9zM5.5 10.5h9v3h-9z", "M22 10.5v3"),
+        [Glyph.Mouse] = S(null, "M12 3a6 6 0 0 1 6 6v6a6 6 0 0 1-12 0V9a6 6 0 0 1 6-6zM12 7v3.5"),
+        [Glyph.Headset] = S("M3 14.5h3a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2zM21 14.5h-3a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h1a2 2 0 0 0 2-2z", "M4 16v-4a8 8 0 0 1 16 0v4"),
+        [Glyph.Keyboard] = S(null, "M4 6.5h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM6.5 10.5h.01M10 10.5h.01M14 10.5h.01M17.5 10.5h.01M8 14h8"),
         [Glyph.Charging] = S("M13.5 3L5 13.5h6L10 21l9-11h-6.5z"),
         [""] = S("M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"),
     };

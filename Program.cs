@@ -28,6 +28,14 @@ public static class Program
 
         if (args.Contains("--purge")) return SystemActions.PurgeElevated();
 
+        if (args.Contains("--batteries"))
+        {
+            // Diagnostic: what the bar would show, printed for scripts and bug reports.
+            foreach (var h in Hid.All()) Console.WriteLine($"hid {h.Vid:X4}:{h.Pid:X4} mi={h.Interface} page={h.UsagePage:X4} in={h.InputLength} out={h.OutputLength} feat={h.FeatureLength}");
+            foreach (var b in DeviceBatteries.Read()) Console.WriteLine($"{b.Name} ({b.Kind}): {(b.Percent is int p ? p + "%" : "desligado")}{(b.Charging ? " carregando" : "")}");
+            return 0;
+        }
+
         // Signals to the running instance, handy for Stream Deck buttons and scripts.
         foreach (var (flag, name) in new[] { ("--quit", QuitEvent), ("--toggle-apps", ToggleAppsEvent), ("--toggle-controls", ToggleControlsEvent) })
         {

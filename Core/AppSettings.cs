@@ -131,6 +131,8 @@ public sealed class AppSettings
     public bool TopBarShowUser { get; set; } = true;
     public bool TopBarShowApp { get; set; } = true;
     public bool TopBarShowMemory { get; set; } = true;
+    /// <summary>Battery of wireless mice and headsets read from their receivers.</summary>
+    public bool TopBarShowBatteries { get; set; } = true;
     /// <summary>.NET date format of the clock.</summary>
     public string TopBarClockFormat { get; set; } = "ddd d MMM, HH:mm";
     /// <summary>Order of the bar's right side, as the user dragged it; empty is the default order.</summary>

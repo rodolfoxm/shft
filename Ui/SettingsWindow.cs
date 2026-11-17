@@ -251,6 +251,7 @@ public sealed class SettingsWindow : Window
         }), "\uE8CB");
         Row(content, "Mostrar o nome", null, Toggle(S.TopBarShowUser, v => S.TopBarShowUser = v), "\uE77B");
         Row(content, "Mostrar o app em foco", null, Toggle(S.TopBarShowApp, v => S.TopBarShowApp = v), "\uE737");
+        Row(content, "Bateria dos dispositivos sem fio", "Mouse e fone Razer e SteelSeries, lidos direto do receptor.", Toggle(S.TopBarShowBatteries, v => S.TopBarShowBatteries = v), Glyph.Battery);
         Row(content, "Mostrar a memória", "Clicar nela libera a RAM ociosa; o Windows pede confirmação.", Toggle(S.TopBarShowMemory, v => S.TopBarShowMemory = v), Glyph.Memory);
         Row(content, "Formato do relógio", "ddd = dia, MMM = mês, HH = hora, mm = minutos, tt = AM/PM.", Field(S.TopBarClockFormat, v =>
         {

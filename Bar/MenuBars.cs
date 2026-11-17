@@ -36,6 +36,7 @@ public sealed class MenuBars : IDisposable
         ConnectivityService.Instance.Changed += OnData;
         NotificationService.Instance.Changed += OnData;
         TrayHost.Instance.Changed += () => ForEach(b => b.OnTray());
+        DeviceBatteries.Instance.Changed += () => ForEach(b => b.OnBatteries());
     }
 
     void OnData() => ForEach(b => b.OnData());
@@ -111,6 +112,8 @@ public sealed class MenuBars : IDisposable
         }
         ForEach(b => b.Apply());
         UpdateFocus(Win32.GetForegroundWindow());
+        if (s.TopBarEnabled && s.TopBarShowBatteries && !_full) DeviceBatteries.Instance.Start();
+        else DeviceBatteries.Instance.Stop();
         if (s.TopBarStyle == TopBarStyle.Adaptive && s.TopBarEnabled) _heartbeat.Start();
         else _heartbeat.Stop();
         RequestSample();
@@ -160,6 +163,7 @@ public sealed class MenuBars : IDisposable
         {
             _memory.Stop();
             _heartbeat.Stop();
+            DeviceBatteries.Instance.Stop(); // no receiver traffic while a game owns the screen
             NotificationService.Instance.Pause(true);
         }
         else
@@ -167,6 +171,7 @@ public sealed class MenuBars : IDisposable
             _memory.Start();
             if (SettingsStore.Current.TopBarStyle == TopBarStyle.Adaptive) _heartbeat.Start();
             NotificationService.Instance.Pause(false);
+            if (SettingsStore.Current.TopBarShowBatteries) DeviceBatteries.Instance.Start();
         }
     }
 

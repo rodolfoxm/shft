@@ -202,6 +202,7 @@ public sealed class MenuBarWindow : Window
             if (!_trayChanged) return;
             _trayChanged = false;
             OnTray();
+            OnBatteries();
         };
     }
 
@@ -210,14 +211,57 @@ public sealed class MenuBarWindow : Window
         var s = SettingsStore.Current;
         var shown = _right.Items.Children.OfType<FrameworkElement>().Select(c => _slots.First(x => x.Value == c).Key).ToList();
         // A pinned app that is closed right now keeps its place in the list for when it comes back.
-        s.TopBarOrder = shown.Concat(s.TopBarOrder.Where(k => k.StartsWith("pin:", StringComparison.Ordinal) && !shown.Contains(k))).ToList();
+        s.TopBarOrder = shown.Concat(s.TopBarOrder.Where(k => IsExtra(k) && !shown.Contains(k))).ToList();
         SettingsStore.Save();
+    }
+
+    /// <summary>Items that come and go (pinned tray icons, devices): absent ones keep their saved place.</summary>
+    static bool IsExtra(string key) => key.StartsWith("pin:", StringComparison.Ordinal) || key.StartsWith("battery:", StringComparison.Ordinal);
+
+    /// <summary>One item per wireless device: its kind, the level, a bolt while charging; red when low, dimmed while asleep.</summary>
+    public void OnBatteries()
+    {
+        if (_drag.IsDragging)
+        {
+            _trayChanged = true;
+            return;
+        }
+        foreach (var key in _slots.Keys.Where(k => k.StartsWith("battery:", StringComparison.Ordinal)).ToList()) _slots.Remove(key);
+        if (SettingsStore.Current.TopBarShowBatteries)
+        {
+            foreach (var d in DeviceBatteries.Instance.Items)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal };
+                row.Children.Add(Glyph.Text(d.Kind switch { DeviceKind.Headset => Glyph.Headset, DeviceKind.Keyboard => Glyph.Keyboard, _ => Glyph.Mouse }, 14));
+                bool low = d.Percent <= 15 && !d.Charging;
+                var level = new TextBlock { Text = $"{d.Percent}%", FontSize = 12.5, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
+                if (low) level.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x45, 0x3A));
+                row.Children.Add(level);
+                if (d.Charging)
+                {
+                    var bolt = Glyph.Text(Glyph.Charging, 10);
+                    bolt.Margin = new Thickness(2, 0, 0, 0);
+                    row.Children.Add(bolt);
+                }
+                if (d.Asleep) row.Opacity = 0.5;
+                var b = FlyoutWindow.FlatButton(row, DeviceBatteries.Instance.RefreshSoon, 7);
+                b.Focusable = false;
+                b.Foreground = _right.Text;
+                b.Padding = new Thickness(7, 3, 7, 3);
+                b.VerticalAlignment = VerticalAlignment.Center;
+                b.ToolTip = $"{d.Name}: {d.Percent}%{(d.Charging ? ", carregando" : "")}{(d.Asleep ? " (último valor, aparelho dormindo)" : "")}";
+                AutomationProperties.SetName(b, $"Bateria de {d.Name}");
+                _drag.Attach(b, b);
+                _slots["battery:" + d.Key] = b;
+            }
+        }
+        ApplyOrder();
     }
 
     void ApplyOrder()
     {
         if (_drag.IsDragging) return; // the item in the pointer's hand must stay where the drag put it
-        var pins = _slots.Keys.Where(k => k.StartsWith("pin:", StringComparison.Ordinal));
+        var pins = _slots.Keys.Where(IsExtra);
         var order = BarOrder.Arrange(BarOrder.WithPins(BarOrder.Default, pins), SettingsStore.Current.TopBarOrder).Select(k => _slots[k]).ToList();
         if (_right.Items.Children.OfType<FrameworkElement>().SequenceEqual(order)) return;
         _right.Items.Children.Clear();
@@ -403,6 +447,7 @@ public sealed class MenuBarWindow : Window
         OnData();
         OnClock();
         OnTray();
+        OnBatteries();
         OnMemory();
     }
 

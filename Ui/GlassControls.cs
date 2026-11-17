@@ -15,7 +15,7 @@ public static class Glyph
 {
     public const string Bluetooth = "", Wifi = "", Ethernet = "", Offline = "", Bell = "", Volume = "", Mute = "",
         Mic = "", MicOff = "", Sun = "", Moon = "", Settings = "", Power = "", Chevron = "", Back = "",
-        Up = "", Down = "", Controls = "", Memory = "", Hdr = "", Eye = "", Search = "", Pin = "", Unpin = "",
+        Up = "", Down = "", Mouse = "", Headset = "", Keyboard = "", Controls = "", Memory = "", Hdr = "", Eye = "", Search = "", Pin = "", Unpin = "",
         Play = "", Pause = "", Prev = "", Next = "", Lock = "", Restart = "", SignOut = "", Today = "",
         Check = "", Battery = "", Charging = "", Close = "", Apps = "";
 

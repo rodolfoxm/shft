@@ -215,6 +215,92 @@ public class OverlayTests
     [Fact] public void Empty_monitor_is_safe() => Assert.False(Monitors.IsOverlay("x", new RECT(0, 0, 10, 10), new RECT(0, 0, 0, 0)));
 }
 
+public class DeviceBatteryTests
+{
+    // The real reply of this PC's Arctis Nova Pro base (12E5) with the headset off.
+    static readonly byte[] ArctisOff = Convert.FromHexString("06B00000010000080700020A0400040100000000");
+
+    [Fact]
+    public void Razer_request_has_the_layout_and_checksum()
+    {
+        var r = Razer.Request(0x1F, 0x07, 0x80, 0x02);
+        Assert.Equal(91, r.Length);
+        Assert.Equal(0x1F, r[2]);
+        Assert.Equal(0x02, r[6]);
+        Assert.Equal(0x07, r[7]);
+        Assert.Equal(0x80, r[8]);
+        Assert.Equal(0x02 ^ 0x07 ^ 0x80, r[89]);
+    }
+
+    static byte[] Reply(byte status, byte level)
+    {
+        var r = Razer.Request(0x1F, 0x07, 0x80, 0x02);
+        r[1] = status;
+        r[10] = level;
+        byte crc = 0;
+        for (int i = 3; i < 89; i++) crc ^= r[i];
+        r[89] = crc;
+        return r;
+    }
+
+    [Fact]
+    public void Razer_ok_reply_gives_the_level()
+    {
+        Assert.Equal(Razer.Status.Ok, Razer.Parse(Reply(0x02, 212), 0x1F, 0x07, 0x80, 0x02, out var args));
+        Assert.Equal(83, Razer.Percent(args[1]));
+    }
+
+    [Fact] public void Razer_full_and_empty() => Assert.Equal((100, 0), (Razer.Percent(255), Razer.Percent(0)));
+    [Fact] public void Razer_busy_and_offline() => Assert.Equal((Razer.Status.Busy, Razer.Status.Offline), (Razer.Parse(Reply(0x01, 0), 0x1F, 0x07, 0x80, 0x02, out _), Razer.Parse(Reply(0x04, 0), 0x1F, 0x07, 0x80, 0x02, out _)));
+
+    [Fact]
+    public void Razer_reply_to_another_program_is_ignored()
+    {
+        var r = Reply(0x02, 200);
+        r[2] = 0x3F; // Synapse's transaction
+        Assert.Equal(Razer.Status.Mismatch, Razer.Parse(r, 0x1F, 0x07, 0x80, 0x02, out _));
+    }
+
+    [Fact]
+    public void Razer_corrupt_reply_is_ignored()
+    {
+        var r = Reply(0x02, 200);
+        r[50] ^= 0xFF;
+        Assert.Equal(Razer.Status.Mismatch, Razer.Parse(r, 0x1F, 0x07, 0x80, 0x02, out _));
+    }
+
+    [Fact] public void Razer_names_lose_the_receiver() => Assert.Equal("Razer Viper V4 Pro", Razer.Clean("Razer Viper V4 Pro HyperSpeed Dongle"));
+    [Fact] public void Razer_kinds() => Assert.Equal((DeviceKind.Headset, DeviceKind.Keyboard, DeviceKind.Mouse), (Razer.KindOf("Razer BlackShark V2 Pro"), Razer.KindOf("Razer Huntsman V3"), Razer.KindOf("Razer Viper V4 Pro")));
+
+    [Fact] public void Arctis_off() => Assert.Null(NovaPro.Parse(ArctisOff, 0x12E5)!.Percent);
+
+    [Fact]
+    public void Arctis_level_and_charging()
+    {
+        var on = (byte[])ArctisOff.Clone();
+        on[6] = 6;
+        on[15] = 0x02;
+        var b = NovaPro.Parse(on, 0x12E5)!;
+        Assert.Equal(75, b.Percent);
+        Assert.True(b.Charging);
+    }
+
+    [Fact] public void Arctis_short_reply_is_nothing() => Assert.Null(NovaPro.Parse(new byte[8], 0x12E5));
+
+    [Fact]
+    public void A_sleeping_device_keeps_its_last_level()
+    {
+        var before = new List<DeviceBattery> { new("m", "Mouse", DeviceKind.Mouse, 83, true) };
+        var now = DeviceBatteries.Merge(before, new List<DeviceBattery> { new("m", "Mouse", DeviceKind.Mouse, null, false) });
+        Assert.Equal(83, now.Single().Percent);
+        Assert.True(now.Single().Asleep);
+        Assert.False(now.Single().Charging);
+    }
+
+    [Fact] public void A_device_never_seen_awake_is_not_shown() =>
+        Assert.Empty(DeviceBatteries.Merge(Array.Empty<DeviceBattery>(), new List<DeviceBattery> { new("h", "Fone", DeviceKind.Headset, null, false) }));
+}
+
 public class WinTapTests
 {
     const int Win = WinTap.LeftWin, E = 0x45;
