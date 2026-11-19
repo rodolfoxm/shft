@@ -544,3 +544,27 @@ public class LogoTests
         Assert.Equal(128, frame.PixelHeight);
     }
 }
+
+public class NotificationTargetTests
+{
+    [Fact]
+    public void ProtocolToastOpensItsUri() =>
+        Assert.Equal("windowsdefender://providers", NotificationService.Target("Windows.Defender.SecurityCenter",
+            "<toast duration=\"short\" launch=\"windowsdefender://providers\" activationType=\"protocol\"><visual/></toast>"));
+
+    [Fact]
+    public void ForegroundToastOpensItsApp() =>
+        Assert.Equal(AppsFolder.PathFor("Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"),
+            NotificationService.Target("Microsoft.WindowsTerminal_8wekyb3d8bbwe!App", "<toast launch=\"action=x&amp;id=1\"><visual/></toast>"));
+
+    [Fact]
+    public void EscapedUriIsDecoded() =>
+        Assert.Equal("https://a.example/?x=1&y=2", NotificationService.Target("App", "<toast activationType='x' launch=\"https://a.example/?x=1&amp;y=2\" activationType=\"protocol\">"));
+
+    [Fact]
+    public void FileUriAndSystemSenderOpenNothing()
+    {
+        Assert.Null(NotificationService.Target("Windows.SystemToast.Calling", "<toast launch=\"file:///C:/x.exe\" activationType=\"protocol\">"));
+        Assert.Null(NotificationService.Target(null, "<toast>"));
+    }
+}

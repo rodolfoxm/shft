@@ -96,7 +96,54 @@ public sealed class NotificationService
 
     public async Task ClearAsync()
     {
-        _listener?.ClearNotifications();
+        // ClearNotifications() left the list as it was here; one by one is what the dismiss button does, and that works.
+        foreach (var n in Items)
+        {
+            try { _listener?.RemoveNotification(n.Id); }
+            catch (Exception ex) { Log.Write($"notification {n.Id} not removed: " + ex.Message); }
+        }
+        Items = Array.Empty<NotificationEntry>();
+        Changed?.Invoke();
         await RefreshAsync();
+    }
+
+    /// <summary>Does what clicking the toast does: opens where it points, then dismisses it.</summary>
+    public async Task OpenAsync(uint id)
+    {
+        string? target = null;
+        try { target = await Task.Run(() => TargetOf(id)); }
+        catch (Exception ex) { Log.Write("notification target not read: " + ex.Message); }
+        Log.Write($"notification {id} opens {target ?? "nothing"}");
+        if (target != null) Dock.DockController.Open(target);
+        await RemoveAsync(id);
+    }
+
+    // The listener API hides the toast's launch target; Windows' own database has the toast XML.
+    internal static string? TargetOf(uint id)
+    {
+        var copy = BadgeWatcher.CopyDatabase("toast");
+        using var con = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={copy};Pooling=False");
+        con.Open();
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = "SELECT h.PrimaryId, n.Payload FROM Notification n JOIN NotificationHandler h ON h.RecordId = n.HandlerId WHERE n.Id = $id";
+        cmd.Parameters.AddWithValue("$id", (long)id);
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return null;
+        var app = reader.IsDBNull(0) ? null : reader.GetString(0);
+        var payload = reader.GetValue(1) is byte[] bytes ? System.Text.Encoding.UTF8.GetString(bytes) : reader.GetValue(1)?.ToString() ?? "";
+        return Target(app, payload);
+    }
+
+    /// <summary>A protocol toast opens its launch URI; any other opens its app. System senders have no app to open.</summary>
+    public static string? Target(string? app, string payload)
+    {
+        var toast = System.Text.RegularExpressions.Regex.Match(payload, "<toast\\b[^>]*>", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Value;
+        string Attr(string name) => System.Net.WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(toast, "\\b" + name + "\\s*=\\s*\"([^\"]*)\"").Groups[1].Value);
+        var launch = Attr("launch");
+        if (Attr("activationType").Equals("protocol", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(launch, UriKind.Absolute, out var uri) && !uri.IsFile && !uri.IsUnc)
+            return launch;
+        if (string.IsNullOrEmpty(app) || app.StartsWith("Windows.SystemToast.", StringComparison.OrdinalIgnoreCase)) return null;
+        return AppsFolder.PathFor(app);
     }
 }

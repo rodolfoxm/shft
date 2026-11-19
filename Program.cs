@@ -36,6 +36,15 @@ public static class Program
             return 0;
         }
 
+        if (args.Contains("--notifications"))
+        {
+            // Diagnostic: each notification and where clicking it would go. Opens nothing.
+            var svc = NotificationService.Instance;
+            svc.StartAsync().GetAwaiter().GetResult();
+            foreach (var n in svc.Items) Console.WriteLine($"{n.Id} {n.App}: {n.Title} -> {NotificationService.TargetOf(n.Id) ?? "nada"}");
+            return 0;
+        }
+
         // Signals to the running instance, handy for Stream Deck buttons and scripts.
         foreach (var (flag, name) in new[] { ("--quit", QuitEvent), ("--toggle-apps", ToggleAppsEvent), ("--toggle-controls", ToggleControlsEvent) })
         {

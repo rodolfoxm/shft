@@ -83,10 +83,11 @@ public sealed class BadgeWatcher : IDisposable
         }
     }
 
-    static Dictionary<string, int> Read()
+    /// <summary>A private copy of Windows' notification database; Windows keeps the original locked. Each caller names its own copy.</summary>
+    internal static string CopyDatabase(string name)
     {
         Directory.CreateDirectory(CopyFolder);
-        var copy = Path.Combine(CopyFolder, "wpn.db");
+        var copy = Path.Combine(CopyFolder, name + ".db");
         foreach (var suffix in new[] { "", "-wal", "-shm" })
         {
             var from = Source + suffix;
@@ -94,7 +95,12 @@ public sealed class BadgeWatcher : IDisposable
             if (File.Exists(from)) File.Copy(from, to, overwrite: true);
             else if (File.Exists(to)) File.Delete(to);
         }
+        return copy;
+    }
 
+    static Dictionary<string, int> Read()
+    {
+        var copy = CopyDatabase("wpn");
         var result = new Dictionary<string, int>();
         using (var con = new SqliteConnection($"Data Source={copy};Pooling=False"))
         {
