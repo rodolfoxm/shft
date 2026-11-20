@@ -43,7 +43,7 @@ public sealed class TrayHost : IDisposable
     const uint NIF_MESSAGE = 1, NIF_ICON = 2, NIF_TIP = 4, NIF_STATE = 8, NIF_INFO = 0x10, NIF_GUID = 0x20, NIF_SHOWTIP = 0x80;
     const uint NIS_HIDDEN = 1;
     const int TrayData = 1;
-    const uint WM_LBUTTONDOWN = 0x201, WM_LBUTTONUP = 0x202, WM_RBUTTONDOWN = 0x204, WM_RBUTTONUP = 0x205, WM_CONTEXTMENU = 0x7B, NIN_SELECT = 0x400;
+    const uint WM_LBUTTONDOWN = 0x201, WM_LBUTTONUP = 0x202, WM_LBUTTONDBLCLK = 0x203, WM_RBUTTONDOWN = 0x204, WM_RBUTTONUP = 0x205, WM_CONTEXTMENU = 0x7B, NIN_SELECT = 0x400;
     internal const int MinPayload = 8 + 288;
 
     readonly Dispatcher _ui = Dispatcher.CurrentDispatcher;
@@ -282,9 +282,22 @@ public sealed class TrayHost : IDisposable
             var lParam = v4 ? new IntPtr(m | (e.Id << 16)) : new IntPtr(m);
             Win32.PostMessage(e.Owner, e.CallbackMessage, wParam, lParam);
         }
+        Log.Write($"tray: {(right ? "right" : "left")} click to {e.Name} (version {e.Version})");
         Send(right ? WM_RBUTTONDOWN : WM_LBUTTONDOWN);
         Send(right ? WM_RBUTTONUP : WM_LBUTTONUP);
-        if (e.Version >= 4) Send(right ? WM_CONTEXTMENU : NIN_SELECT);
+        // Version 3 already moved to these two messages; only the parameter layout changed in 4.
+        if (e.Version >= 3) Send(right ? WM_CONTEXTMENU : NIN_SELECT);
+        if (right) return;
+        // Many apps open their window only on a double click, as in Windows' own tray. If nothing of the app came
+        // to the front, finish the gesture as one.
+        Task.Delay(600).ContinueWith(_ =>
+        {
+            Win32.GetWindowThreadProcessId(Win32.GetForegroundWindow(), out uint front);
+            if (front == pid || !Win32.IsWindow(e.Owner)) return;
+            Log.Write($"tray: {e.Name} showed nothing, double click");
+            Send(WM_LBUTTONDBLCLK);
+            Send(WM_LBUTTONUP);
+        });
     }
 
     public void Dispose()
