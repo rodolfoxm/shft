@@ -79,8 +79,8 @@ public sealed class AppSettings
     public bool Acrylic { get; set; } = true;
     /// <summary>How opaque the bar's own fill is, 0..1; 0 leaves only the glass.</summary>
     public double BarOpacity { get; set; } = 0.45;
-    /// <summary>Liquid Glass rim: specular highlight and a red/cyan fringe that imitates chromatic aberration.</summary>
-    public bool LiquidGlass { get; set; }
+    /// <summary>Liquid Glass on the Dock: a specular rim lit from the top left, a sheen and a little depth, as on Apple's Dock.</summary>
+    public bool LiquidGlass { get; set; } = true;
     public double CornerRadius { get; set; } = 18;
     public string Tint { get; set; } = "";
     public string IndicatorColor { get; set; } = "";

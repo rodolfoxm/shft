@@ -580,3 +580,52 @@ public class HmeBarTests
 
     [Fact] public void Hme_is_off_by_default() => Assert.False(new AppSettings().TopBarShowHme);
 }
+
+public class LiquidGlassTests
+{
+    static readonly System.Windows.Media.Color Base = System.Windows.Media.Color.FromArgb(0xC0, 0x20, 0x20, 0x24);
+
+    [Fact]
+    public void Clear_is_more_transparent_than_regular()
+    {
+        Assert.Equal(Base.A, LiquidGlass.Fill(Base, GlassStyle.Regular).A);
+        Assert.True(LiquidGlass.Fill(Base, GlassStyle.Clear).A < Base.A / 2 + 10);
+    }
+
+    [Fact]
+    public void Tint_pulls_the_colour_toward_it()
+    {
+        var red = LiquidGlass.Fill(Base, GlassStyle.Regular, System.Windows.Media.Color.FromArgb(0x60, 0xFF, 0, 0));
+        Assert.True(red.R > Base.R + 20);
+        Assert.Equal(Base.A, red.A);
+    }
+
+    [Fact]
+    public void Light_comes_from_the_top_left_without_a_colour_fringe()
+    {
+        foreach (var dark in new[] { true, false })
+        {
+            var rim = LiquidGlass.Rim(dark);
+            Assert.True(rim.IsFrozen);
+            Assert.Equal(new System.Windows.Point(0, 0), rim.StartPoint);
+            Assert.Equal(new System.Windows.Point(1, 1), rim.EndPoint);
+            var stops = rim.GradientStops.OrderBy(s => s.Offset).ToList();
+            Assert.True(stops[0].Color.A > stops[^1].Color.A, "the lit corner is the brightest");
+            Assert.True(stops[^1].Color.A > stops.Min(s => s.Color.A), "the far edge keeps a faint reflection");
+            Assert.All(stops, s => Assert.True(s.Color.R == s.Color.G && s.Color.G == s.Color.B));
+        }
+    }
+
+    [Fact]
+    public void Lens_is_a_band_along_the_edge()
+    {
+        var ring = LiquidGlass.Ring(new System.Windows.Size(200, 100), 18, 8);
+        Assert.True(ring.FillContains(new System.Windows.Point(3, 50)));
+        Assert.True(ring.FillContains(new System.Windows.Point(100, 96)));
+        Assert.False(ring.FillContains(new System.Windows.Point(100, 50)));
+        Assert.True(ring.IsFrozen);
+    }
+
+    [Fact]
+    public void Dock_glass_is_on_by_default() => Assert.True(new AppSettings().LiquidGlass);
+}

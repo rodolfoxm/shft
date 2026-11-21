@@ -260,6 +260,10 @@ public sealed class ControlTile : Button
     {
         bool hot = IsMouseOver || IsKeyboardFocused;
         _circle.SetResourceReference(Border.BackgroundProperty, _on ? "TileOnBrush" : hot ? "TileHoverBrush" : "TileBrush");
+        // A round glass control: its specular rim, brighter under the pointer (Liquid Glass's interactive state).
+        bool dark = TryFindResource("TextBrush") is SolidColorBrush text && text.Color.R > 0x80;
+        _circle.BorderThickness = new Thickness(1);
+        _circle.BorderBrush = LiquidGlass.ControlRim(dark, hot);
         _icon.SetResourceReference(TextBlock.ForegroundProperty, _on ? "TileOnTextBrush" : "TextBrush");
     }
 }

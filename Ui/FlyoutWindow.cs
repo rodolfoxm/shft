@@ -26,6 +26,7 @@ public class FlyoutWindow : Window
     protected readonly Border Frame;
     readonly Grid _layers;
     readonly Border _glass = new(); // a brush, not an Image: a stretched Image would grow a size-to-content window to the screen
+    readonly Border _lens = new() { IsHitTestVisible = false }; // the edge band where Liquid Glass bends what is behind
     readonly GlassBar _surface = new() { IsHitTestVisible = false };
     readonly Border _content = new();
     bool _closing;
@@ -48,9 +49,14 @@ public class FlyoutWindow : Window
 
         _layers = new Grid();
         _layers.Children.Add(_glass);
+        _layers.Children.Add(_lens);
         _layers.Children.Add(_surface);
         _layers.Children.Add(_content);
-        _layers.SizeChanged += (_, e) => _layers.Clip = new RectangleGeometry(new Rect(e.NewSize), Radius, Radius);
+        _layers.SizeChanged += (_, e) =>
+        {
+            _layers.Clip = new RectangleGeometry(new Rect(e.NewSize), Radius, Radius);
+            if (_lens.Background != null) _lens.Clip = LiquidGlass.Ring(e.NewSize, Radius, LensBand);
+        };
 
         Frame = new Border
         {
@@ -82,9 +88,12 @@ public class FlyoutWindow : Window
                 _lastClosed = DateTime.UtcNow;
             }
             _glass.Background = null;
+            _lens.Background = null;
             MemoryTrim.Soon(Dispatcher);
         };
     }
+
+    const double LensBand = 9;
 
     protected double Radius { get => _surface.Radius; set => _surface.Radius = value; }
 
@@ -205,6 +214,12 @@ public class FlyoutWindow : Window
                 var brush = new ImageBrush(picture) { Stretch = Stretch.Fill };
                 RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.HighQuality);
                 _glass.Background = brush;
+                if (s.PanelRim)
+                {
+                    // The same picture, magnified a little and shown only along the edge: the lens of Liquid Glass.
+                    _lens.Background = new ImageBrush(picture) { Stretch = Stretch.Fill, RelativeTransform = new ScaleTransform(1.035, 1.035, 0.5, 0.5) };
+                    _lens.Clip = LiquidGlass.Ring(new Size(_layers.ActualWidth, _layers.ActualHeight), Radius, LensBand);
+                }
             }
         }
         if (_glass.Background == null)

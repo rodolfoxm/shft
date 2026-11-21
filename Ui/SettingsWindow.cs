@@ -209,7 +209,7 @@ public sealed class SettingsWindow : Window
         Row(glass, "Transparência", "Quanto o fundo aparece atrás dos painéis.",
             Slider(0.1, 0.95, S.PanelOpacity, 0.05, v => $"{(1 - v) * 100:0}%", v => S.PanelOpacity = v), Glyph.Sun);
         Row(glass, "Intensidade do desfoque", null, Slider(4, 24, S.PanelBlur, 1, v => $"{v:0}", v => S.PanelBlur = (int)v), "\uE9E9");
-        Row(glass, "Borda Liquid Glass", "Brilho no contorno, como luz numa superfície curva.", Toggle(S.PanelRim, v => S.PanelRim = v), "\uE81E");
+        Row(glass, "Liquid Glass", "Brilho especular na borda e uma lente leve no contorno, como o vidro dos painéis da Apple.", Toggle(S.PanelRim, v => S.PanelRim = v), "\uE81E");
         return page;
     }
 
@@ -286,7 +286,7 @@ public sealed class SettingsWindow : Window
             (0, "Nenhum"), (1, "Leve"), (2, "Acrílico"),
         }, !S.Glass ? 0 : S.Acrylic ? 2 : 1, v => { S.Glass = v > 0; S.Acrylic = v == 2; }), "\uE81E");
         Row(look, "Opacidade do fundo", "0% deixa só o vidro.", Slider(0, 1, S.BarOpacity, 0.05, v => $"{v * 100:0}%", v => S.BarOpacity = v), Glyph.Sun);
-        Row(look, "Borda Liquid Glass", "Brilho no topo e uma franja de cor discreta.", Toggle(S.LiquidGlass, v => S.LiquidGlass = v), "\uE81E");
+        Row(look, "Liquid Glass", "Brilho especular na borda, luz no topo e um pouco de profundidade, como o Dock da Apple.", Toggle(S.LiquidGlass, v => S.LiquidGlass = v), "\uE81E");
         Row(look, "Arredondamento", "Com desfoque, o Windows 11 fixa o raio em 8 px.", Slider(0, 32, S.CornerRadius, 1, v => $"{v:0} px", v => S.CornerRadius = v), "\uE8A3");
         Row(look, "Cor do fundo", "Tinge o vidro. Vazio usa a cor do tema.", ColorPicker(S.Tint, v => S.Tint = v), "\uE790");
         Row(look, "Cor do indicador", "A bolinha embaixo dos apps abertos.", ColorPicker(S.IndicatorColor, v => S.IndicatorColor = v), "\uE91F");
