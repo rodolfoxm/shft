@@ -57,7 +57,7 @@ public static partial class Devices
 
     internal static bool? Bool(JsonNode? n) => n is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;
 
-    static double? Number(JsonNode? n) =>
+    internal static double? Number(JsonNode? n) =>
         n is JsonValue v && v.TryGetValue<double>(out var d) ? d : n is JsonValue w && w.TryGetValue<int>(out var i) ? i : null;
 
     static (string? Bright, string? Colour, string? Temp) Codes(IReadOnlyDictionary<string, JsonNode?> st) => (
