@@ -19,6 +19,8 @@ public static class Glyph
         Play = "", Pause = "", Prev = "", Next = "", Lock = "", Restart = "", SignOut = "", Today = "",
         Check = "", Battery = "", Charging = "", Close = "", Apps = "";
 
+    public const string Home = "", Bulb = "", Plug = "";
+
     public static readonly FontFamily Font = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
     public static GlyphView Text(string code, double size = 15) => new(code, size)

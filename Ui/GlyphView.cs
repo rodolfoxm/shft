@@ -93,6 +93,10 @@ public sealed class GlyphView : FrameworkElement
         [Glyph.Mouse] = S(null, "M12 3a6 6 0 0 1 6 6v6a6 6 0 0 1-12 0V9a6 6 0 0 1 6-6zM12 7v3.5"),
         [Glyph.Headset] = S("M3 14.5h3a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2zM21 14.5h-3a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h1a2 2 0 0 0 2-2z", "M4 16v-4a8 8 0 0 1 16 0v4"),
         [Glyph.Keyboard] = S(null, "M4 6.5h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM6.5 10.5h.01M10 10.5h.01M14 10.5h.01M17.5 10.5h.01M8 14h8"),
+        // hme.'s house: the stroked roof and walls of Controle Casa's icon, chimney included
+        [Glyph.Home] = S("M15.6 3.1h2.6a.8.8 0 0 1 .8.8v3.3l-3.4-2.7z", "M3 11.2L12 4l9 7.2M5.8 10v9.5h12.4V10"),
+        [Glyph.Bulb] = S(null, "M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-1.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3zM9.5 20.5h5"),
+        [Glyph.Plug] = S(null, "M9 3v5M15 3v5M6.5 8h11v3a5.5 5.5 0 0 1-11 0zM12 16.5V21"),
         [Glyph.Charging] = S("M13.5 3L5 13.5h6L10 21l9-11h-6.5z"),
         [""] = S("M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"),
     };
