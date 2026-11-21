@@ -1,7 +1,4 @@
 using System.IO;
-using System.Net.Http;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Windows;
 using Shft.Core;
 
@@ -21,12 +18,9 @@ public static class HmeProgram
         bool quiet = args.Contains("--bandeja");
         var cfg = HmeConfig.Load(HmeConfig.DefaultFolder);
 
-        if (ProbeVersion(cfg.Port) is JsonValue v && v.TryGetValue<int>(out _))
+        if (LocalApi.IsOldControleCasa(cfg.Port).GetAwaiter().GetResult())
         {
-            // Controle Casa (Python) answers with a number; two apps on one account would double the cloud calls.
-            if (!quiet)
-                MessageBox.Show("O Controle Casa antigo está aberto. Feche-o pela bandeja (botão direito → Sair) e abra o hme. de novo: o hme. usa a mesma configuração.",
-                    "hme.", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!quiet) MessageBox.Show(LocalApi.OldAppMessage, "hme.", MessageBoxButton.OK, MessageBoxImage.Information);
             return 1;
         }
 
@@ -57,21 +51,6 @@ public static class HmeProgram
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {
             Log.Write("hme: start entry not migrated: " + ex.Message);
-        }
-    }
-
-    /// <summary>What answers /api/version on hme.'s port, or null when nothing does.</summary>
-    static JsonNode? ProbeVersion(int port)
-    {
-        try
-        {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
-            var text = http.GetStringAsync($"http://127.0.0.1:{port}/api/version").GetAwaiter().GetResult();
-            return JsonNode.Parse(text)?["version"];
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            return null;
         }
     }
 }

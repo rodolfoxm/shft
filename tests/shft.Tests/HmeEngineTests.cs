@@ -270,3 +270,96 @@ public sealed class HmeEngineTests : IDisposable
         Assert.Null(error); // not configured yet: the panel shows the setup
     }
 }
+
+public sealed class HmeReviewFixTests : IDisposable
+{
+    readonly string _dir = Path.Combine(Path.GetTempPath(), "hme-fix-" + Guid.NewGuid().ToString("N"));
+
+    public HmeReviewFixTests() => Directory.CreateDirectory(_dir);
+
+    public void Dispose() => Directory.Delete(_dir, true);
+
+    static AcState Ac(int temp = 24, bool power = true, string mode = "cool") =>
+        new(power, mode, temp, "auto", false, true, "", HmeConfig.AllModes, 17, 30, "");
+
+    [Fact] // review 1: two quick "+" from 24° end at 26° in one command
+    public void Quick_ac_taps_merge_into_one_change()
+    {
+        var shown = Ac(24);
+        AcChange? pending = null;
+        foreach (var tap in new[] { new AcChange(Temp: shown.Temp + 1), new AcChange(Temp: 26) })
+        {
+            pending = AcChanges.Merge(pending, tap);
+            shown = AcChanges.Apply(shown, tap);
+        }
+        Assert.Equal(26, shown.Temp);
+        Assert.Equal(new AcChange(Temp: 26), pending);
+        Assert.Equal(new AcChange(Power: false, Temp: 26), AcChanges.Merge(pending, new AcChange(Power: false)));
+        Assert.Equal(30, AcChanges.Apply(Ac(30), new AcChange(Temp: 31)).Temp);
+    }
+
+    [Fact] // review 2 and 3: a configured account never waits on the network to build the engine
+    public async Task Factory_builds_the_engine_without_connecting()
+    {
+        var cfg = HmeConfig.Load(_dir);
+        (cfg.AccessId, cfg.AccessSecret, cfg.Configured, cfg.Region) = ("K", "S", true, "us");
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var (home, error) = await HmeEngineFactory.Create(cfg, new Usage(_dir));
+        Assert.IsType<HmeEngine>(home);
+        Assert.Null(error);
+        Assert.True(watch.ElapsedMilliseconds < 1000);
+    }
+
+    [Fact] // review 4: the Python Controle Casa answers /api/version with a number
+    public async Task Old_controle_casa_is_recognised()
+    {
+        var free = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        free.Start();
+        int port = ((System.Net.IPEndPoint)free.LocalEndpoint).Port;
+        free.Stop();
+        using var python = new System.Net.HttpListener();
+        python.Prefixes.Add($"http://127.0.0.1:{port}/");
+        python.Start();
+        _ = Task.Run(async () =>
+        {
+            var ctx = await python.GetContextAsync();
+            var bytes = System.Text.Encoding.UTF8.GetBytes("{\"version\": 15}");
+            ctx.Response.OutputStream.Write(bytes);
+            ctx.Response.Close();
+        });
+        Assert.True(await LocalApi.IsOldControleCasa(port));
+        python.Stop();
+        Assert.False(await LocalApi.IsOldControleCasa(port));
+    }
+
+    [Fact] // review 5: a malformed Positivo reply must not take the Tuya devices down with it
+    public async Task Bad_positivo_reply_keeps_the_home_working()
+    {
+        var cfg = HmeConfig.Load(_dir);
+        cfg.HasAc = false;
+        var cloud = new FakeCloud
+        {
+            Answer = (_, p, _) => p == "/v1.0/iot-01/associated-users/devices"
+                ? FakeCloud.Ok(new JsonObject { ["devices"] = new JsonArray(new JsonObject
+                {
+                    ["id"] = "a", ["name"] = "Luz", ["category"] = "kg", ["online"] = true,
+                    ["status"] = new JsonArray(new JsonObject { ["code"] = "switch_1", ["value"] = true }),
+                }), ["has_more"] = false })
+                : FakeCloud.Ok(),
+        };
+        var http = new FakePositivo
+        {
+            Answer = a => a switch
+            {
+                "tuya.m.location.list" => """{"success":true,"result":[{"groupId":1}]}""",
+                "tuya.m.my.group.device.list" => """{"success":true,"result":[{"devId":"p1","isOnline":true,"dps":{"1":true}}]}""",
+                "tuya.m.device.get" => """{"success":true,"result":{"name":"X","devId":"p1","schema":"not json"}}""",
+                _ => null,
+            },
+        };
+        var e = new HmeEngine(cfg, cloud, new Usage(_dir), new SavedList(_dir), new PositivoClient("a@b.c", "pw", "DEV", "SID", null, http, _ => Task.CompletedTask));
+        var s = await e.State();
+        Assert.Equal("a", s.Devices.Single().Id);
+        Assert.NotNull(s.Notice);
+    }
+}

@@ -8,6 +8,19 @@ public sealed record AcState(bool Power, string Mode, int Temp, string Fan, bool
 
 public sealed record AcChange(bool? Power = null, string? Mode = null, int? Temp = null, string? Fan = null, bool? Turbo = null);
 
+/// <summary>Quick taps on the AC become one command (one beep), as Controle Casa's panel did: shown at once, sent once.</summary>
+public static class AcChanges
+{
+    public static AcChange Merge(AcChange? pending, AcChange next) => pending == null ? next : new AcChange(
+        next.Power ?? pending.Power, next.Mode ?? pending.Mode, next.Temp ?? pending.Temp, next.Fan ?? pending.Fan, next.Turbo ?? pending.Turbo);
+
+    public static AcState Apply(AcState s, AcChange c) => s with
+    {
+        Power = c.Power ?? s.Power, Mode = c.Mode ?? s.Mode, Fan = c.Fan ?? s.Fan, Turbo = c.Turbo ?? s.Turbo,
+        Temp = Math.Clamp(c.Temp ?? s.Temp, s.TempMin, s.TempMax),
+    };
+}
+
 /// <summary>
 /// core.py's air conditioner: Wi-Fi ACs by their status codes, IR ones through the hub. Each change is one IR shot,
 /// and once a way of sending works only that way is used, so the AC never beeps twice.

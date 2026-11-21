@@ -20,6 +20,7 @@ public sealed class HmeEngine : IHome
     readonly AirConditioner _ac;
     readonly SemaphoreSlim _commands = new(1, 1);
     readonly SemaphoreSlim _listGate = new(1, 1);
+    readonly SemaphoreSlim _positivoGate = new(1, 1); // the panel and the local API may ask at once
     readonly Dictionary<string, string> _routes = new(); // device -> command route that worked
     readonly List<string> _errors = new();
     List<JsonObject> _cache;
@@ -98,8 +99,10 @@ public sealed class HmeEngine : IHome
         List<JsonObject> Fallback() => Positivo.Cache.Count > 0 ? Positivo.Cache.ToList() : _saved.Get("positivo");
         if (cacheOnly || (!force && (_now() - _positivoFailedAt).TotalSeconds < PositivoBackoff)) return Fallback();
         if (!force && (_now() - _positivoAt).TotalSeconds < Ttl) return Fallback();
+        await _positivoGate.WaitAsync();
         try
         {
+            if (!force && (_now() - _positivoAt).TotalSeconds < Ttl) return Fallback(); // someone else just read it
             var devs = await Positivo.Devices(force: true, ttlSeconds: 0);
             (_positivoAt, _positivoFailedAt, PositivoError) = (_now(), DateTime.MinValue, "");
             if (devs.Count > 0 || _saved.Get("positivo").Count == 0)
@@ -109,11 +112,15 @@ public sealed class HmeEngine : IHome
             }
             return _saved.Get("positivo"); // came back empty all of a sudden: do not wipe the panel
         }
-        catch (PositivoException ex)
+        catch (Exception ex) // unofficial API: an odd reply must not take the Tuya devices down with it
         {
-            (PositivoError, _positivoFailedAt) = (ex.Message, _now());
-            Log.Write("hme: Positivo: " + ex.Message);
+            (PositivoError, _positivoFailedAt) = (ex is PositivoException ? ex.Message : "resposta inesperada da Positivo (" + ex.Message + ")", _now());
+            Log.Write("hme: Positivo: " + ex);
             return Fallback();
+        }
+        finally
+        {
+            _positivoGate.Release();
         }
     }
 

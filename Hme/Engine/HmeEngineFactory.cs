@@ -17,21 +17,10 @@ public static class HmeEngineFactory
         if (cfg.SecretError != null && !cfg.Demo) return (null, cfg.SecretError);
         if (cfg.Demo) return (new DemoHome(cfg), null);
         if (!cfg.Configured || cfg.AccessId.Length == 0 || cfg.AccessSecret.Length == 0) return (null, null);
+        // No token here: it comes with the first request, so a slow or offline start shows the saved list at once and
+        // any cloud problem (keys included) shows as the panel's notice instead of blocking the engine.
         var cloud = new TuyaCloud(cfg.Region, cfg.AccessId, cfg.AccessSecret, usage);
-        try
-        {
-            await cloud.Connect();
-        }
-        catch (HmeCloudException ex) when (!ex.Message.StartsWith("Sem conexão", StringComparison.Ordinal))
-        {
-            cloud.Dispose();
-            return (null, ex.Message);
-        }
-        catch (HmeCloudException ex)
-        {
-            Log.Write("hme: offline at start, showing the saved list: " + ex.Message); // the token comes with the first request
-        }
-        return (new HmeEngine(cfg, cloud, usage, new SavedList(cfg.Folder), StartPositivo(cfg)), null);
+        return await Task.FromResult<(IHome?, string?)>((new HmeEngine(cfg, cloud, usage, new SavedList(cfg.Folder), StartPositivo(cfg)), null));
     }
 
     static PositivoClient? StartPositivo(HmeConfig cfg)

@@ -196,6 +196,11 @@ public sealed class MenuBars : IDisposable
     {
         if (_hme != null) return _hme;
         var cfg = Hme.HmeConfig.Load(Hme.HmeConfig.DefaultFolder);
+        if (await Hme.LocalApi.IsOldControleCasa(cfg.Port))
+        {
+            MessageBox.Show(Hme.LocalApi.OldAppMessage, "hme.", MessageBoxButton.OK, MessageBoxImage.Information);
+            return null;
+        }
         var host = Hme.EngineHost.TryAcquire(cfg, () => Application.Current.Dispatcher.BeginInvoke(() => BarUnderPointer()?.ToggleHme()),
             () => Log.Write("hme: /api/quit ignored inside shft."));
         if (host == null)

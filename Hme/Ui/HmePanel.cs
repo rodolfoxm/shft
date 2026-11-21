@@ -31,6 +31,9 @@ public sealed class HmePanel : FlyoutWindow
     readonly ScrollViewer _scroll;
     readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromSeconds(60) };
     readonly DispatcherTimer _errorTimer = new() { Interval = TimeSpan.FromSeconds(6) };
+    readonly DispatcherTimer _acTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    AcChange? _acPending;
+    AcState? _acShown;
     readonly HashSet<string> _expanded = new();
     HomeState? _state;
     string? _room, _error;
@@ -45,11 +48,20 @@ public sealed class HmePanel : FlyoutWindow
         Body = _scroll;
         _poll.Tick += (_, _) => _ = Load(false);
         _errorTimer.Tick += (_, _) => { _errorTimer.Stop(); _error = null; Draw(); };
+        _acTimer.Tick += (_, _) =>
+        {
+            _acTimer.Stop();
+            if (_acPending is not { } change) return;
+            _acPending = null;
+            _ = Run(h => h.SetAc(change)).ContinueWith(_ => _acShown = null, TaskScheduler.FromCurrentSynchronizationContext());
+        };
         _host.Changed += OnHostChanged;
         Closed += (_, _) =>
         {
             _poll.Stop();
             _errorTimer.Stop();
+            if (_acPending is { } change && _host.Home is { } home) _ = home.SetAc(change); // a tap just before closing still goes out
+            _acTimer.Stop();
             _host.Changed -= OnHostChanged;
         };
         Draw();
@@ -80,10 +92,22 @@ public sealed class HmePanel : FlyoutWindow
             _state = await home.State();
             _host.Report(_state);
         }
-        catch (Exception ex) when (ex is HmeCloudException or PositivoException or System.Net.Http.HttpRequestException)
+        catch (Exception ex)
         {
-            ShowError(ex.Message);
+            Shft.Core.Log.Write("hme: panel read failed: " + ex);
+            ShowError(ex is HmeCloudException or PositivoException ? ex.Message : "Não consegui ler a casa agora.");
         }
+        Draw();
+    }
+
+    /// <summary>The card changes at once; the AC gets one command 700 ms after the last tap.</summary>
+    void Tap(AcChange change)
+    {
+        if ((_acShown ?? _state?.Ac) is not { } shown) return;
+        _acShown = AcChanges.Apply(shown, change);
+        _acPending = AcChanges.Merge(_acPending, change);
+        _acTimer.Stop();
+        _acTimer.Start();
         Draw();
     }
 
@@ -96,9 +120,10 @@ public sealed class HmePanel : FlyoutWindow
             _state = await action(home);
             _host.Report(_state);
         }
-        catch (Exception ex) when (ex is HmeCloudException or PositivoException or System.Net.Http.HttpRequestException)
+        catch (Exception ex)
         {
-            ShowError(ex.Message);
+            Shft.Core.Log.Write("hme: panel command failed: " + ex);
+            ShowError(ex is HmeCloudException or PositivoException ? ex.Message : "O comando não foi aceito.");
         }
         finally
         {
@@ -156,7 +181,7 @@ public sealed class HmePanel : FlyoutWindow
             if (_error != null) t.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x45, 0x3A));
             _root.Children.Add(t);
         }
-        if (_state.Ac is { Available: true } ac) _root.Children.Add(AcCard(ac));
+        if ((_acShown ?? _state.Ac) is { Available: true } ac) _root.Children.Add(AcCard(ac));
         _root.Children.Add(RoomsBar());
         _root.Children.Add(DeviceList());
         _scroll.ScrollToVerticalOffset(scroll);
@@ -209,12 +234,12 @@ public sealed class HmePanel : FlyoutWindow
         var stack = new StackPanel();
         var top = new DockPanel();
         var power = new ControlTile(Glyph.Power, "Ar-condicionado", ac.Power ? $"Ligado · {ModeNames.GetValueOrDefault(ac.Mode, ac.Mode)}" : "Desligado", wide: true, circle: 34) { IsOn = ac.Power };
-        power.Click += (_, _) => _ = Run(h => h.SetAc(new AcChange(Power: !ac.Power)));
+        power.Click += (_, _) => Tap(new AcChange(Power: !ac.Power));
         power.IsBusy = _busy;
 
         var temp = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
-        var minus = FlatButton(new TextBlock { Text = "−", FontSize = 18, Width = 14, TextAlignment = TextAlignment.Center }, () => _ = Run(h => h.SetAc(new AcChange(Temp: ac.Temp - 1))), 6);
-        var plus = FlatButton(new TextBlock { Text = "+", FontSize = 18, Width = 14, TextAlignment = TextAlignment.Center }, () => _ = Run(h => h.SetAc(new AcChange(Temp: ac.Temp + 1))), 6);
+        var minus = FlatButton(new TextBlock { Text = "−", FontSize = 18, Width = 14, TextAlignment = TextAlignment.Center }, () => Tap(new AcChange(Temp: ac.Temp - 1)), 6);
+        var plus = FlatButton(new TextBlock { Text = "+", FontSize = 18, Width = 14, TextAlignment = TextAlignment.Center }, () => Tap(new AcChange(Temp: ac.Temp + 1)), 6);
         AutomationProperties.SetName(minus, "Diminuir temperatura");
         AutomationProperties.SetName(plus, "Aumentar temperatura");
         minus.IsEnabled = ac.Temp > ac.TempMin;
@@ -229,12 +254,12 @@ public sealed class HmePanel : FlyoutWindow
 
         var modes = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
         foreach (var m in ac.Modes)
-            modes.Children.Add(Chip(ModeNames.GetValueOrDefault(m, m), ac.Mode == m, () => _ = Run(h => h.SetAc(new AcChange(Mode: m)))));
+            modes.Children.Add(Chip(ModeNames.GetValueOrDefault(m, m), ac.Mode == m, () => Tap(new AcChange(Mode: m))));
         stack.Children.Add(modes);
         var fans = new WrapPanel();
         foreach (var (id, name) in FanNames)
-            fans.Children.Add(Chip(name, !ac.Turbo && ac.Fan == id, () => _ = Run(h => h.SetAc(new AcChange(Fan: id, Turbo: ac.Turbo ? false : null)))));
-        fans.Children.Add(Chip("Turbo", ac.Turbo, () => _ = Run(h => h.SetAc(new AcChange(Turbo: !ac.Turbo)))));
+            fans.Children.Add(Chip(name, !ac.Turbo && ac.Fan == id, () => Tap(new AcChange(Fan: id, Turbo: ac.Turbo ? false : null))));
+        fans.Children.Add(Chip("Turbo", ac.Turbo, () => Tap(new AcChange(Turbo: !ac.Turbo))));
         stack.Children.Add(fans);
         if (ac.Error.Length > 0)
         {

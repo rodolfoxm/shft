@@ -62,6 +62,23 @@ public static class LocalApi
         }
     }
 
+    /// <summary>Controle Casa (Python) answers /api/version with a number; hme. answers with text.</summary>
+    public static async Task<bool> IsOldControleCasa(int port)
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
+        try
+        {
+            var v = JsonNode.Parse(await http.GetStringAsync($"http://127.0.0.1:{port}/api/version"))?["version"];
+            return v is JsonValue n && n.TryGetValue<int>(out _);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return false;
+        }
+    }
+
+    public const string OldAppMessage = "O Controle Casa antigo está aberto. Feche-o pela bandeja (botão direito → Sair) e abra o hme. de novo: ele usa a mesma configuração, e os dois juntos dobrariam as consultas à nuvem.";
+
     sealed class BadRequest(int code, string message) : Exception(message)
     {
         public int Code { get; } = code;
