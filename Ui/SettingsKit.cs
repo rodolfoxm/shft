@@ -10,7 +10,7 @@ namespace Shft.Ui;
 /// <summary>The Settings window's building blocks, so every page shares the same sizes, spacing and states.</summary>
 public static class SettingsKit
 {
-    public static ResourceDictionary Theme { get; } = new() { Source = new Uri("pack://application:,,,/shft;component/Ui/SettingsTheme.xaml") };
+    public static ResourceDictionary Theme { get; } = new() { Source = new Uri("pack://application:,,,/Ui/SettingsTheme.xaml") };
 
     static Style Style(string key) => (Style)Theme[key];
 

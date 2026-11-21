@@ -29,6 +29,16 @@ public sealed class EngineHost : IDisposable
     public Action Quit { get; }
     public event Action? Changed;
 
+    /// <summary>The last home the panel saw; the tray's blue dot and menu read it, so they never call the cloud.</summary>
+    public HomeState? Last { get; private set; }
+    public event Action<HomeState>? Updated;
+
+    public void Report(HomeState state)
+    {
+        Last = state;
+        Updated?.Invoke(state);
+    }
+
     /// <summary>Null when another process already owns the engine.</summary>
     public static EngineHost? TryAcquire(HmeConfig cfg, Action show, Action quit, string mutexName = MutexName, bool startApi = true)
     {

@@ -143,6 +143,22 @@ public class FlyoutWindow : Window
         Reveal(() => PlaceNear(anchor, side), side == DockEdge.Bottom ? 8 : -8);
     }
 
+    /// <summary>Opens above a point on screen, in pixels (a notification area icon), kept inside its monitor.</summary>
+    public void ShowAbove(double px, double py)
+    {
+        _origin = new Point(0.5, 1);
+        Reveal(() =>
+        {
+            var (w, h) = PixelSize();
+            var monitor = Monitors.All().FirstOrDefault(m => px >= m.Bounds.Left && px < m.Bounds.Right && py >= m.Bounds.Top && py < m.Bounds.Bottom) ?? Monitors.Pick(-1);
+            var b = monitor.Bounds;
+            double shadow = Frame.Margin.Left * monitor.Scale, gap = 12 * monitor.Scale;
+            double x = Math.Clamp(px - w / 2.0, b.Left - shadow, Math.Max(b.Left - shadow, b.Right - w + shadow));
+            double y = Math.Clamp(py - h + shadow - gap, b.Top - shadow, Math.Max(b.Top - shadow, b.Bottom - h + shadow));
+            Move(x, y);
+        }, 8);
+    }
+
     /// <summary>Opens centred across a monitor, a bit above the middle, like a search box.</summary>
     public void ShowCentered(MonitorInfo monitor, double heightFraction = 0.2)
     {

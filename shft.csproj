@@ -34,12 +34,13 @@
     <!-- WPF and WinForms both define Point, Application, MessageBox...; keep WPF's names unqualified. -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
-    <Compile Remove="tests/**" />
-    <Page Remove="tests/**" />
+    <Compile Remove="tests/**;standalone/**" />
+    <Page Remove="tests/**;standalone/**" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Assets\shft.ico" />
+    <Resource Include="Assets\hme.ico" />
     <!-- Program.Main is the entry point, so helper runs skip WPF entirely. -->
     <!-- GC compacts harder to keep the heap small (0 = off, 9 = most aggressive). -->
     <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />

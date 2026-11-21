@@ -11,8 +11,9 @@ namespace Shft.Hme;
 /// </summary>
 public sealed class HmeConfig
 {
-    public static readonly string DefaultFolder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ControleCasa");
+    /// <summary>Controle Casa's folder; HME_DATA points a test run elsewhere (like SHFT_DATA for shft.).</summary>
+    public static readonly string DefaultFolder = Environment.GetEnvironmentVariable("HME_DATA") is { Length: > 0 } data
+        ? data : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ControleCasa");
 
     public static readonly string[] AllModes = ["cool", "heat", "auto", "fan", "dry"];
 

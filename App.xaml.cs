@@ -193,7 +193,7 @@ public partial class App : Application
 
     public static void ApplyTheme(Theme theme)
     {
-        var r = Current.Resources;
+        var r = Application.Current.Resources; // hme.exe runs these windows without shft.'s App
         r["MenuBackBrush"] = Theme.Brush(theme.MenuBack);
         r["MenuTextBrush"] = Theme.Brush(theme.MenuText);
         r["MenuSubtleBrush"] = Theme.Brush(Color.FromArgb(0xA0, theme.MenuText.R, theme.MenuText.G, theme.MenuText.B));

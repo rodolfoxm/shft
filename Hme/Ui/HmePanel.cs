@@ -78,6 +78,7 @@ public sealed class HmePanel : FlyoutWindow
             }
             home.MarkActivity();
             _state = await home.State();
+            _host.Report(_state);
         }
         catch (Exception ex) when (ex is HmeCloudException or PositivoException or System.Net.Http.HttpRequestException)
         {
@@ -93,6 +94,7 @@ public sealed class HmePanel : FlyoutWindow
         try
         {
             _state = await action(home);
+            _host.Report(_state);
         }
         catch (Exception ex) when (ex is HmeCloudException or PositivoException or System.Net.Http.HttpRequestException)
         {

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- hme. on its own: the same source as shft. (Hme/ plus the shared UI), started by HmeProgram. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>hme</AssemblyName>
+    <RootNamespace>Shft</RootNamespace>
+    <ApplicationManifest>..\app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Assets\hme.ico</ApplicationIcon>
+    <Version>2.0.0</Version>
+    <StartupObject>Shft.Hme.HmeProgram</StartupObject>
+    <Product>hme.</Product>
+    <AssemblyTitle>hme.</AssemblyTitle>
+    <Description>Ar, luzes e tomadas do Smart Life e da Positivo.</Description>
+    <Company>rodolfoxm</Company>
+    <Copyright>© 2026 rodolfoxm</Copyright>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>8.0</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <Compile Include="..\**\*.cs" Exclude="..\tests\**;..\standalone\**;..\obj\**;..\bin\**;..\artifacts\**;..\graphify-out\**;..\.superpowers\**" />
+    <Page Include="..\App.xaml" Link="App.xaml" />
+    <Page Include="..\Ui\*.xaml" LinkBase="Ui" />
+    <Resource Include="..\Assets\hme.ico" Link="Assets\hme.ico" />
+    <Resource Include="..\Assets\shft.ico" Link="Assets\shft.ico" />
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>
