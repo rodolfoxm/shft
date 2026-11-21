@@ -73,7 +73,7 @@ public sealed class MenuBarWindow : Window
     Button _userButton = null!, _appButton = null!, _memoryButton = null!, _btButton = null!;
     StackPanel _appMenus = null!;
     FrameworkElement _logo = null!;
-    Button _controls = null!;
+    Button _controls = null!, _hmeButton = null!;
 
     public MonitorInfo Monitor => _monitor;
     public IntPtr Handle => _hwnd;
@@ -179,6 +179,7 @@ public sealed class MenuBarWindow : Window
         Button? bellButton = null;
         bellButton = PanelItem(bell, "Notificações", () => Panel("bell", () => new NotificationsPanel(), bellButton!));
         _controls = PanelItem(Glyph.Text(Glyph.Controls, 15), "Central de Controle", ToggleControlCenter);
+        _hmeButton = PanelItem(Glyph.Text(Glyph.Home, 15), "hme.", ToggleHme);
         _clock = new TextBlock { FontWeight = FontWeights.SemiBold, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center };
         Button? clock = null;
         clock = PanelItem(_clock, "Calendário", () => Panel("clock", () => new CalendarPanel(), clock!));
@@ -186,7 +187,7 @@ public sealed class MenuBarWindow : Window
         _slots = new Dictionary<string, FrameworkElement>
         {
             ["memory"] = _memoryButton, ["tray"] = trayButton, ["network"] = network, ["bluetooth"] = _btButton,
-            ["volume"] = volume, ["bell"] = bellButton, ["controls"] = _controls, ["clock"] = clock,
+            ["volume"] = volume, ["bell"] = bellButton, ["hme"] = _hmeButton, ["controls"] = _controls, ["clock"] = clock,
         };
         _drag = new BarDrag(_right.Items);
         foreach (var slot in _slots.Values) _drag.Attach(slot, slot);
@@ -302,6 +303,21 @@ public sealed class MenuBarWindow : Window
     }
 
     public void ToggleControlCenter() => Panel("controls", () => new ControlCenterWindow(), _controls);
+
+    /// <summary>hme.'s house: its panel, or the panel of the hme.exe that already owns the engine.</summary>
+    public async void ToggleHme()
+    {
+        var wasOpen = _keyAtPress ?? (_open != null ? _openKey : null);
+        if (wasOpen == "hme")
+        {
+            _keyAtPress = null;
+            _open?.SafeClose();
+            _open = null;
+            return;
+        }
+        var host = await _hub.HmeHost();
+        if (host != null) Panel("hme", () => new Shft.Hme.HmePanel(host), _hmeButton);
+    }
 
     void OpenUserMenu()
     {
@@ -441,6 +457,7 @@ public sealed class MenuBarWindow : Window
         _appButton.Visibility = s.TopBarShowApp ? Visibility.Visible : Visibility.Collapsed;
         _appMenus.Visibility = _appButton.Visibility;
         _memoryButton.Visibility = s.TopBarShowMemory ? Visibility.Visible : Visibility.Collapsed;
+        _hmeButton.Visibility = s.TopBarShowHme ? Visibility.Visible : Visibility.Collapsed;
         foreach (var t in new[] { _user, _app, _memory, _clock }) t.Foreground = t == _user || t == _app ? _left.Text : _right.Text;
         SetLogo(s);
         Place();

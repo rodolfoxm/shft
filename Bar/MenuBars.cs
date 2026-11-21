@@ -22,6 +22,7 @@ public sealed class MenuBars : IDisposable
     Win32.WinEventProc? _proc;
     bool _full, _sampling;
     bool _purging;
+    Hme.EngineHost? _hme;
 
     public IntPtr Foreground { get; private set; }
 
@@ -114,6 +115,11 @@ public sealed class MenuBars : IDisposable
         UpdateFocus(Win32.GetForegroundWindow());
         if (s.TopBarEnabled && s.TopBarShowBatteries && !_full) DeviceBatteries.Instance.Start();
         else DeviceBatteries.Instance.Stop();
+        if (!s.TopBarShowHme && _hme != null)
+        {
+            _hme.Dispose(); // the house is off: nothing of hme. keeps running
+            _hme = null;
+        }
         if (s.TopBarStyle == TopBarStyle.Adaptive && s.TopBarEnabled) _heartbeat.Start();
         else _heartbeat.Stop();
         RequestSample();
@@ -177,6 +183,33 @@ public sealed class MenuBars : IDisposable
 
     public void ToggleControlCenter() => BarUnderPointer()?.ToggleControlCenter();
 
+    public void ToggleHme()
+    {
+        if (SettingsStore.Current.TopBarShowHme) BarUnderPointer()?.ToggleHme();
+    }
+
+    /// <summary>
+    /// hme.'s engine, created on the first click of the house. When hme.exe already owns it, hme.exe shows its own
+    /// panel and this returns null; if that hme.exe is gone, shft. takes the engine over.
+    /// </summary>
+    public async Task<Hme.EngineHost?> HmeHost()
+    {
+        if (_hme != null) return _hme;
+        var cfg = Hme.HmeConfig.Load(Hme.HmeConfig.DefaultFolder);
+        var host = Hme.EngineHost.TryAcquire(cfg, () => Application.Current.Dispatcher.BeginInvoke(() => BarUnderPointer()?.ToggleHme()),
+            () => Log.Write("hme: /api/quit ignored inside shft."));
+        if (host == null)
+        {
+            if (await Hme.LocalApi.AskShow(cfg.Port)) return null;
+            host = Hme.EngineHost.TryAcquire(cfg, () => Application.Current.Dispatcher.BeginInvoke(() => BarUnderPointer()?.ToggleHme()),
+                () => Log.Write("hme: /api/quit ignored inside shft."));
+            if (host == null) return null;
+        }
+        _hme = host;
+        await host.Start();
+        return host;
+    }
+
     MenuBarWindow? BarUnderPointer()
     {
         Win32.GetCursorPos(out var c);
@@ -204,6 +237,8 @@ public sealed class MenuBars : IDisposable
     {
         foreach (var t in new[] { _clock, _memory, _watch, _sample, _heartbeat }) t.Stop();
         foreach (var h in _hooks) Win32.UnhookWinEvent(h);
+        _hme?.Dispose();
+        _hme = null;
         foreach (var b in _bars.ToList())
             try { b.Close(); } catch (InvalidOperationException) { }
         _bars.Clear();

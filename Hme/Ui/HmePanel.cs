@@ -123,10 +123,11 @@ public sealed class HmePanel : FlyoutWindow
     static Button Chip(string text, bool on, Action click)
     {
         var label = new TextBlock { Text = text, FontSize = 12, FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal };
-        var b = FlatButton(label, click, 8);
-        b.Margin = new Thickness(0, 0, 6, 6);
-        b.SetResourceReference(BackgroundProperty, on ? "TileOnBrush" : "TileBrush");
+        var pill = new Border { CornerRadius = new CornerRadius(10), Padding = new Thickness(9, 3, 9, 3), Child = label };
+        pill.SetResourceReference(Border.BackgroundProperty, on ? "TileOnBrush" : "TileBrush");
         if (on) label.SetResourceReference(TextBlock.ForegroundProperty, "TileOnTextBrush");
+        var b = FlatButton(pill, click, 2); // the flat template paints no background of its own: the pill carries it
+        b.Margin = new Thickness(0, 0, 4, 4);
         AutomationProperties.SetItemStatus(b, on ? "selecionado" : "");
         return b;
     }
@@ -146,16 +147,16 @@ public sealed class HmePanel : FlyoutWindow
             _root.Children.Add(Card(Subtle("Carregando…")));
             return;
         }
-        if (_state.Ac is { Available: true } ac) _root.Children.Add(AcCard(ac));
-        _root.Children.Add(RoomsBar());
-        _root.Children.Add(DeviceList());
-        if ((_error ?? _state.Notice) is { } note)
+        if ((_error ?? _state.Notice) is { } note) // on top: a quota or trial problem explains everything below
         {
             var t = Subtle(note);
-            t.Margin = new Thickness(4, 10, 4, 0);
+            t.Margin = new Thickness(4, 8, 4, 0);
             if (_error != null) t.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x45, 0x3A));
             _root.Children.Add(t);
         }
+        if (_state.Ac is { Available: true } ac) _root.Children.Add(AcCard(ac));
+        _root.Children.Add(RoomsBar());
+        _root.Children.Add(DeviceList());
         _scroll.ScrollToVerticalOffset(scroll);
     }
 

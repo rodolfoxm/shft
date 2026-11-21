@@ -42,6 +42,7 @@ public partial class App : Application
 
         Listen(Program.ToggleAppsEvent, () => SpotlightWindow.Toggle());
         Listen(Program.ToggleControlsEvent, () => _bars?.ToggleControlCenter());
+        Listen(Program.ToggleHmeEvent, () => _bars?.ToggleHme());
 
         // `shft.exe --quit` asks this instance to close cleanly (taskbar and reserved space restored).
         new Thread(() =>

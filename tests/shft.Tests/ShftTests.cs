@@ -568,3 +568,15 @@ public class NotificationTargetTests
         Assert.Null(NotificationService.Target(null, "<toast>"));
     }
 }
+
+public class HmeBarTests
+{
+    [Fact] public void Hme_sits_right_before_the_control_center() =>
+        Assert.Equal(Array.IndexOf(BarOrder.Default, "controls") - 1, Array.IndexOf(BarOrder.Default, "hme"));
+
+    [Fact] public void Old_saved_order_gets_hme_after_the_bell() =>
+        Assert.Equal(new[] { "memory", "tray", "network", "bluetooth", "volume", "bell", "hme", "controls", "clock" },
+            BarOrder.Arrange(BarOrder.Default, new[] { "memory", "tray", "network", "bluetooth", "volume", "bell", "controls", "clock" }));
+
+    [Fact] public void Hme_is_off_by_default() => Assert.False(new AppSettings().TopBarShowHme);
+}

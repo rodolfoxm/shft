@@ -19,7 +19,8 @@ public static class Glyph
         Play = "", Pause = "", Prev = "", Next = "", Lock = "", Restart = "", SignOut = "", Today = "",
         Check = "", Battery = "", Charging = "", Close = "", Apps = "";
 
-    public const string Home = "", Bulb = "", Plug = "";
+    // hme.'s own vectors; the codes only need to be free in this set (Today already took the font's house).
+    public const string Home = "", Bulb = "", Plug = "";
 
     public static readonly FontFamily Font = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 

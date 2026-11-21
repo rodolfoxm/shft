@@ -7,7 +7,7 @@ namespace Shft.Bar;
 /// <summary>The order of the bar's items. Pure, so it can be tested.</summary>
 public static class BarOrder
 {
-    public static readonly string[] Default = { "memory", "tray", "network", "bluetooth", "volume", "bell", "controls", "clock" };
+    public static readonly string[] Default = { "memory", "tray", "network", "bluetooth", "volume", "bell", "hme", "controls", "clock" };
 
     /// <summary>
     /// The saved order, ignoring keys that no longer exist. An item the saved order doesn't know yet, from a newer

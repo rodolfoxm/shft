@@ -13,6 +13,7 @@ public static class Program
     public const string ShowSettingsEvent = "shft.ShowSettings";
     public const string ToggleAppsEvent = "shft.ToggleApps";
     public const string ToggleControlsEvent = "shft.ToggleControls";
+    public const string ToggleHmeEvent = "shft.ToggleHme";
 
     /// <summary>Held by the running Dock; a second launch only signals it.</summary>
     internal static Mutex? SingleInstance;
@@ -46,7 +47,7 @@ public static class Program
         }
 
         // Signals to the running instance, handy for Stream Deck buttons and scripts.
-        foreach (var (flag, name) in new[] { ("--quit", QuitEvent), ("--toggle-apps", ToggleAppsEvent), ("--toggle-controls", ToggleControlsEvent) })
+        foreach (var (flag, name) in new[] { ("--quit", QuitEvent), ("--toggle-apps", ToggleAppsEvent), ("--toggle-controls", ToggleControlsEvent), ("--toggle-hme", ToggleHmeEvent) })
         {
             if (!args.Contains(flag)) continue;
             using var signal = new EventWaitHandle(false, EventResetMode.AutoReset, name);
