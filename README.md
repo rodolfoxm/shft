@@ -51,8 +51,8 @@ dotnet test tests/shft.Tests
 ```
 
 **hme.** (smart home: Smart Life and Positivo) lives in `Hme/`. Inside shft. it is the house on the top bar
-(Settings → Top bar); `standalone/hme.csproj` builds the same code as a single `hme.exe` with a tray icon, released
-in [rodolfoxm/hme](https://github.com/rodolfoxm/hme) whenever its version changes.
+(Settings → Top bar); `standalone/hme.csproj` builds the same code as a single `hme.exe` with a tray icon. Each shft. release carries it,
+and [rodolfoxm/hme](https://github.com/rodolfoxm/hme) copies it into a release of its own when its version is new.
 
 `scripts/make-branding.ps1` regenerates every logo and icon from one geometry. Pushing a tag such as `v1.0.1` that matches the version in `shft.csproj` builds and publishes a release through GitHub Actions.
 

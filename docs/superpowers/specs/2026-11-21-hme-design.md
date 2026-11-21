@@ -141,6 +141,10 @@ nenhum campo que o hme. desconheça; o hme. preserva no arquivo os campos que n�
   O código Python fica no histórico desse repositório. O README passa a apontar para o download e para o código no
   shft.
 
+> **Atualização (2026-11-21):** em vez do token, cada release do shft. leva o `hme.exe`, o SHA256, a versão e as
+> notas, e o fluxo `sync.yml` do `rodolfoxm/hme` cria a release de lá quando a versão é nova, com a permissão do
+> próprio repositório. Nenhuma chave pessoal fica guardada em lugar nenhum.
+
 ## Decidido pelo dono
 
 - Reescrita em C# (abordagem B).
