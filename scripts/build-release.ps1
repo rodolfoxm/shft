@@ -34,4 +34,11 @@ Get-ChildItem $out -File | Where-Object Extension -in '.exe', '.zip' | ForEach-O
     '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
 } | Set-Content (Join-Path $out 'SHA256SUMS.txt') -Encoding ASCII
 
-Get-ChildItem $out -File | ForEach-Object { '{0,8:0.0} MB  {1}' -f ($_.Length / 1MB), $_.Name }
+# hme. on its own: one exe, released in rodolfoxm/hme (kept apart from shft.'s files above).
+$hmeVersion = ([xml](Get-Content standalone/hme.csproj -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+$hmeOut = Join-Path $out "hme-$hmeVersion"
+dotnet publish standalone/hme.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $hmeOut --nologo
+if ($LASTEXITCODE) { throw 'hme. publish failed' }
+'{0}  hme.exe' -f (Get-FileHash (Join-Path $hmeOut 'hme.exe') -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content (Join-Path $hmeOut 'hme.exe.sha256') -Encoding ASCII
+
+Get-ChildItem $out -File -Recurse | Where-Object { $_.DirectoryName -notlike '*publish*' } | ForEach-Object { '{0,8:0.0} MB  {1}' -f ($_.Length / 1MB), $_.Name }
