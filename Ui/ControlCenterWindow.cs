@@ -61,6 +61,7 @@ public sealed class ControlCenterWindow : FlyoutWindow
         // with no panel behind, each group carries the panel's glass tint ("Transparência") itself
         b.SetResourceReference(Border.BackgroundProperty, GroupBrushKey);
         b.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
+        MarkGroup(b);
         return b;
     }
 

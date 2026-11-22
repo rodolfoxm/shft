@@ -78,7 +78,7 @@ public sealed class NotificationsPanel : FlyoutWindow
             row.Children.Add(text);
             var card = new Border { CornerRadius = new CornerRadius(BareWanted ? 16 : 12), Padding = new Thickness(10, 8, 6, 8), Margin = new Thickness(0, 0, 0, 6), Child = row };
             card.SetResourceReference(Border.BackgroundProperty, GroupBrushKey);
-            if (BareWanted) { card.BorderThickness = new Thickness(1); card.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush"); }
+            MarkGroup(card);
             card.Cursor = Cursors.Hand;
             var id = n.Id;
             card.MouseLeftButtonUp += (_, e) =>

@@ -55,3 +55,24 @@ public class GlassTintTests
     public void Blur_slider_moves_clear_style_too() =>
         Assert.True(GlassDevice.BlurFor(GlassStyle.Clear, 24) > GlassDevice.BlurFor(GlassStyle.Clear, 4));
 }
+
+public class GlassGroupsTests
+{
+    [Fact]
+    public void Groups_pack_rects_radii_and_count()
+    {
+        var f = GlassDevice.PackGroups([(1, 2, 3, 4, 20), (5, 6, 7, 8, 22)]);
+        Assert.Equal(GlassDevice.GroupFloats, f.Length);
+        Assert.Equal(new float[] { 1, 2, 3, 4, 5, 6, 7, 8 }, f[..8]);
+        Assert.Equal(20, f[GlassDevice.MaxGroups * 4]);
+        Assert.Equal(22, f[GlassDevice.MaxGroups * 4 + 1]);
+        Assert.Equal(2, f[GlassDevice.MaxGroups * 5]);
+    }
+
+    [Fact]
+    public void More_than_sixteen_groups_are_capped()
+    {
+        var many = Enumerable.Range(0, 20).Select(i => ((float)i, 0f, 10f, 10f, 4f)).ToList();
+        Assert.Equal(16, GlassDevice.PackGroups(many)[GlassDevice.MaxGroups * 5]);
+    }
+}

@@ -211,6 +211,8 @@ public partial class App : Application
         r["AccentBrush"] = Theme.Brush(theme.Accent);
         r["PanelTintBrush"] = Theme.Brush(theme.PanelTint);
         r["TileBrush"] = Theme.Brush(theme.TileBack);
+        // a group floating on its own glass: a thin tint, the glass under it does the rest ("Transparência" still scales it)
+        r["GroupBrush"] = Theme.Brush(Color.FromArgb((byte)(theme.PanelTint.A * 0.45), theme.PanelTint.R, theme.PanelTint.G, theme.PanelTint.B));
         r["TileHoverBrush"] = Theme.Brush(theme.TileHover);
         r["TileOnBrush"] = Theme.Brush(theme.TileOn);
         r["TileOnTextBrush"] = Theme.Brush(theme.TileOnText);

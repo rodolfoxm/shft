@@ -145,6 +145,7 @@ public sealed class HmePanel : FlyoutWindow
         var b = new Border { CornerRadius = new CornerRadius(radius), Padding = padding ?? new Thickness(12), BorderThickness = new Thickness(1), Child = child, Margin = new Thickness(0, 10, 0, 0) };
         b.SetResourceReference(Border.BackgroundProperty, GroupBrushKey);
         b.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
+        MarkGroup(b);
         return b;
     }
 

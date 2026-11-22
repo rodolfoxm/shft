@@ -15,6 +15,14 @@ cbuffer Params : register(b0)
     float4 tint;        // rgb + strength (a = 0: no tint)
 };
 
+// Several rounded shapes on one glass (panel groups floating apart, like macOS): x, y, w, h in glass px.
+cbuffer Groups : register(b1)
+{
+    float4 groups[16];
+    float4 groupRadii[4];
+    float4 groupCount; // x = count; 0 = the whole glass is one shape
+};
+
 Texture2D src : register(t0);
 SamplerState samp : register(s0);
 
@@ -29,17 +37,33 @@ VSOut VS(uint id : SV_VertexID)
     return o;
 }
 
-float RoundedSdf(float2 p, out float2 normal)
+float ShapeSdf(float2 p, float2 c, float2 h, float r, out float2 normal)
 {
-    float2 c = size * 0.5;
     float2 d = p - c;
-    float2 q = abs(d) - (c - radius);
+    float2 q = abs(d) - (h - r);
     float outside = length(max(q, 0));
     float inside = min(max(q.x, q.y), 0);
     if (q.x > 0 && q.y > 0) normal = normalize(q) * sign(d);
     else if (q.x > q.y) normal = float2(sign(d.x), 0);
     else normal = float2(0, sign(d.y));
-    return outside + inside - radius;
+    return outside + inside - r;
+}
+
+// Distance to the nearest shape, with that shape's outward normal.
+float RoundedSdf(float2 p, out float2 normal)
+{
+    int count = (int)groupCount.x;
+    if (count <= 0) return ShapeSdf(p, size * 0.5, size * 0.5, radius, normal);
+    float best = 1e6;
+    normal = float2(0, -1);
+    [loop] for (int k = 0; k < count; k++)
+    {
+        float4 g = groups[k];
+        float2 nk;
+        float sk = ShapeSdf(p, g.xy + g.zw * 0.5, g.zw * 0.5, groupRadii[k / 4][k % 4], nk);
+        if (sk < best) { best = sk; normal = nk; }
+    }
+    return best;
 }
 
 float3 Tap(float2 p) { return src.SampleLevel(samp, (p + srcOffset) / srcSize, 0).rgb; }

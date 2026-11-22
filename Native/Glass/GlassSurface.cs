@@ -67,6 +67,11 @@ public sealed class GlassSurface : IGlassSource, IDisposable
     public float Blur { get => _blur; set { if (_blur != value) { _blur = value; Restyle(); } } }
     public float Frost { get => _frost; set { if (_frost != value) { _frost = value; Restyle(); } } }
     public Color? Tint { get => _tint; set { if (_tint != value) { _tint = value; Restyle(); } } }
+    float[]? _groups;
+    /// <summary>Glass only inside these shapes (see <see cref="GlassDevice.PackGroups"/>); null = the whole rect.</summary>
+    public float[]? Groups { get => _groups; set { if (!SameGroups(_groups, value)) { _groups = value; Restyle(); } } }
+
+    static bool SameGroups(float[]? a, float[]? b) => a == null ? b == null : b != null && a.AsSpan().SequenceEqual(b);
 
     /// <summary>Settings changed: forget the last image so the next one is drawn even if nothing moved behind.</summary>
     void Restyle()
@@ -317,7 +322,7 @@ public sealed class GlassSurface : IGlassSource, IDisposable
                 if (NextSource is { } wanted) { NextSource = null; wanted.TrySetResult(Read(ctx, _srcTex, _src.Width, _src.Height)); }
                 if (_dev.SameAsLast(_srv, _src.Width, _src.Height, ref _previous)) return;
                 _dev.Draw(new GlassDraw(_rtv, _srv, _glass.Width, _glass.Height, _radius, _glass.X - _src.X, _glass.Y - _src.Y,
-                    _src.Width, _src.Height, _style, _dark, _blur, _tint, _frost));
+                    _src.Width, _src.Height, _style, _dark, _blur, _tint, _frost, _groups));
                 _swap.Present(0, PresentFlags.None);
             }
         }

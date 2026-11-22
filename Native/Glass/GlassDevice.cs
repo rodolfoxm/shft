@@ -13,7 +13,7 @@ namespace Shft.Native.Glass;
 
 public readonly record struct GlassDraw(ID3D11RenderTargetView Target, ID3D11ShaderResourceView Source, int Width, int Height,
     float Radius, float OffsetX, float OffsetY, int SourceWidth, int SourceHeight, GlassStyle Style, bool Dark,
-    float Blur, Color? Tint, float Frost = 0.22f);
+    float Blur, Color? Tint, float Frost = 0.22f, float[]? Groups = null);
 
 /// <summary>One D3D11 device for every glass surface; the immediate context is only touched under <see cref="Gate"/>.</summary>
 public sealed class GlassDevice : IDisposable
@@ -37,7 +37,11 @@ public sealed class GlassDevice : IDisposable
     readonly ID3D11DeviceContext _ctx;
     readonly ID3D11VertexShader _vs;
     readonly ID3D11PixelShader _ps, _psCopy;
-    readonly ID3D11Buffer _cb;
+    readonly ID3D11Buffer _cb, _groupsCb;
+    readonly float[] _groups = new float[GroupFloats];
+
+    /// <summary>Up to 16 shapes: 16 rects (x, y, w, h), 16 radii, then the count (padded to 4).</summary>
+    public const int MaxGroups = 16, GroupFloats = MaxGroups * 4 + MaxGroups + 4;
     readonly ID3D11SamplerState _sampler;
     (int W, int H, ID3D11Texture2D Tex, ID3D11RenderTargetView Rtv, ID3D11Texture2D Staging)? _small;
 
@@ -51,6 +55,7 @@ public sealed class GlassDevice : IDisposable
         _ps = dev.CreatePixelShader(Compiler.Compile(hlsl, "PS", "GlassShader.hlsl", "ps_5_0").Span);
         _psCopy = dev.CreatePixelShader(Compiler.Compile(hlsl, "PSCopy", "GlassShader.hlsl", "ps_5_0").Span);
         _cb = dev.CreateBuffer(new BufferDescription((uint)Marshal.SizeOf<Params>(), BindFlags.ConstantBuffer));
+        _groupsCb = dev.CreateBuffer(new BufferDescription(GroupFloats * sizeof(float), BindFlags.ConstantBuffer));
         _sampler = dev.CreateSamplerState(SamplerDescription.LinearClamp);
         using var dxgi = dev.QueryInterface<IDXGIDevice>();
         Marshal.ThrowExceptionForHR(CreateDirect3D11DeviceFromDXGIDevice(dxgi.NativePointer, out var insp));
@@ -79,6 +84,21 @@ public sealed class GlassDevice : IDisposable
     public static float FrostFor(GlassTint tint, GlassStyle style) =>
         (tint switch { GlassTint.Clearer => 0.06f, GlassTint.Tinted => 0.45f, _ => 0.22f }) * (style == GlassStyle.Clear ? 0.6f : 1f);
 
+    /// <summary>Packs rounded rects (glass px) for the shader; more than 16 are dropped.</summary>
+    public static float[] PackGroups(IReadOnlyList<(float X, float Y, float W, float H, float Radius)> shapes)
+    {
+        var f = new float[GroupFloats];
+        int n = Math.Min(shapes.Count, MaxGroups);
+        for (int i = 0; i < n; i++)
+        {
+            var s = shapes[i];
+            f[i * 4] = s.X; f[i * 4 + 1] = s.Y; f[i * 4 + 2] = s.W; f[i * 4 + 3] = s.H;
+            f[MaxGroups * 4 + i] = s.Radius;
+        }
+        f[MaxGroups * 5] = n;
+        return f;
+    }
+
     public void Draw(GlassDraw d)
     {
         var tint = d.Tint ?? default;
@@ -92,8 +112,12 @@ public sealed class GlassDevice : IDisposable
         lock (Gate)
         {
             _ctx.UpdateSubresource(in prm, _cb);
+            Array.Clear(_groups);
+            if (d.Groups is { } g) Array.Copy(g, _groups, Math.Min(g.Length, GroupFloats));
+            _ctx.UpdateSubresource(_groups, _groupsCb);
             Bind(d.Source, d.Target, d.Width, d.Height, _ps);
             _ctx.PSSetConstantBuffer(0, _cb);
+            _ctx.PSSetConstantBuffer(1, _groupsCb);
             _ctx.Draw(3, 0);
         }
     }
@@ -149,7 +173,7 @@ public sealed class GlassDevice : IDisposable
         {
             DisposeSmall();
             (WinRt as IDisposable)?.Dispose();
-            _sampler.Dispose(); _cb.Dispose(); _psCopy.Dispose(); _ps.Dispose(); _vs.Dispose();
+            _sampler.Dispose(); _cb.Dispose(); _groupsCb.Dispose(); _psCopy.Dispose(); _ps.Dispose(); _vs.Dispose();
             _ctx.ClearState(); _ctx.Dispose(); Device.Dispose();
         }
     }

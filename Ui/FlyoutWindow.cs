@@ -119,10 +119,59 @@ public class FlyoutWindow : Window
     public static UIElement Floating(UIElement child, double radius = 16, Thickness? padding = null)
     {
         if (!BareWanted) return child;
-        var b = new Border { CornerRadius = new CornerRadius(radius), Padding = padding ?? new Thickness(10, 6, 6, 6), BorderThickness = new Thickness(1), Child = child };
-        b.SetResourceReference(Border.BackgroundProperty, "PanelTintBrush");
-        b.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
+        var b = new Border { CornerRadius = new CornerRadius(radius), Padding = padding ?? new Thickness(10, 6, 6, 6), Child = child };
+        MarkGroup(b);
         return b;
+    }
+
+    const string GroupTag = "shft-glass-group";
+
+    /// <summary>With no panel card, this group gets its own glass: thin tint, light on the edge, rounder corners.</summary>
+    public static void MarkGroup(Border b)
+    {
+        if (!BareWanted) return;
+        b.Tag = GroupTag;
+        b.SetResourceReference(Border.BackgroundProperty, "GroupBrush");
+        b.BorderBrush = LiquidGlass.Rim(Theme.Resolve(SettingsStore.Current).IsDark);
+        b.BorderThickness = new Thickness(1);
+        double r = Math.Max(b.CornerRadius.TopLeft, 20);
+        b.CornerRadius = new CornerRadius(r);
+    }
+
+    List<(float X, float Y, float W, float H, float Radius)>? _lastGroups;
+
+    /// <summary>The glass (live or photo) only under the floating groups.</summary>
+    void UpdateGroups()
+    {
+        var found = new List<(float, float, float, float, float)>();
+        void Walk(DependencyObject d)
+        {
+            for (int i = 0, n = VisualTreeHelper.GetChildrenCount(d); i < n; i++)
+            {
+                var c = VisualTreeHelper.GetChild(d, i);
+                if (c is Border { Tag: GroupTag, IsVisible: true } b && b.ActualWidth > 0)
+                {
+                    var r = b.TransformToAncestor(_layers).TransformBounds(new Rect(b.RenderSize));
+                    found.Add(((float)r.X, (float)r.Y, (float)r.Width, (float)r.Height, (float)b.CornerRadius.TopLeft));
+                    continue;
+                }
+                Walk(c);
+            }
+        }
+        Walk(_content);
+        if (_lastGroups != null && _lastGroups.SequenceEqual(found)) return;
+        _lastGroups = found;
+        if (_real != null)
+        {
+            var dpi = VisualTreeHelper.GetDpi(this);
+            float sx = (float)dpi.DpiScaleX, sy = (float)dpi.DpiScaleY;
+            _real.Groups = GlassDevice.PackGroups(found.Select(g => (g.Item1 * sx, g.Item2 * sy, g.Item3 * sx, g.Item4 * sy, g.Item5 * sx)).ToList());
+            return;
+        }
+        var shapes = new GeometryGroup();
+        foreach (var g in found) shapes.Children.Add(new RectangleGeometry(new Rect(g.Item1, g.Item2, g.Item3, g.Item4), g.Item5, g.Item5));
+        shapes.Freeze();
+        _glass.Clip = shapes;
     }
 
     /// <summary>An opaque card instead of glass, for the sticky note.</summary>
@@ -231,6 +280,15 @@ public class FlyoutWindow : Window
         {
             _surface.Visibility = Visibility.Collapsed;
             Frame.Effect = null;
+            var h = new WindowInteropHelper(this).Handle;
+            bool live = s.PanelRim && !SystemParameters.HighContrast && GlassRuntime.Wanted(s) && TryRealGlass(h, s, theme);
+            if (!live) DressPhoto(h, s, theme, false);
+            _lens.Background = null;
+            _glass.Clip = Geometry.Empty; // nothing until the groups are measured
+            _lastGroups = null;
+            UpdateGroups();
+            LayoutUpdated -= OnGroupsLayout;
+            LayoutUpdated += OnGroupsLayout;
             return;
         }
         if (_paper is Color paper)
@@ -263,7 +321,8 @@ public class FlyoutWindow : Window
         {
             if (h == GlassHealth.Live || _real != real) return;
             DropRealGlass();
-            DressPhoto(hwnd, SettingsStore.Current, Theme.Resolve(SettingsStore.Current), true);
+            DressPhoto(hwnd, SettingsStore.Current, Theme.Resolve(SettingsStore.Current), !Bare);
+            if (Bare) { _lens.Background = null; _lastGroups = null; UpdateGroups(); }
         });
         _sync = new PanelGlassSync(Frame, real, _origin, dpi.DpiScaleX, dpi.DpiScaleY);
         _sync.Hidden(); // the card starts at opacity 0 too
@@ -281,6 +340,8 @@ public class FlyoutWindow : Window
         int mx = (int)(Frame.Margin.Left * dpi.DpiScaleX), my = (int)(Frame.Margin.Top * dpi.DpiScaleY);
         _real.SetShape(new Int32Rect(w.Left + mx, w.Top + my, w.Width - 2 * mx, w.Height - 2 * my), Radius * dpi.DpiScaleX);
     }
+
+    void OnGroupsLayout(object? sender, EventArgs e) => UpdateGroups();
 
     void DropRealGlass()
     {
