@@ -31,6 +31,7 @@ public class GlassSurfaceTests
     public void Live_frame_has_no_owner_pixels_and_no_glass()
     {
         if (!Environment.UserInteractive) return; // needs an interactive desktop
+        if (Environment.GetEnvironmentVariable("CI") != null) return; // CI runners have no real desktop to magnify
         using var dev = GlassDevice.TryCreate(out _);
         if (dev == null) return; // no GPU
 
