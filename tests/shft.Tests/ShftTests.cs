@@ -637,17 +637,20 @@ public class SettingsReadTests
     {
         var path = Path.Combine(Path.GetTempPath(), "shft-lock-" + Guid.NewGuid().ToString("N") + ".json");
         File.WriteAllText(path, "{\"x\":1}");
+        var lockStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+        // released on its own thread: a busy thread pool (CI) released it too late for the reader's retries
+        var release = new Thread(() => { Thread.Sleep(250); lockStream.Dispose(); });
         try
         {
-            var lockStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
-            var release = Task.Delay(250).ContinueWith(_ => lockStream.Dispose());
+            release.Start();
             Assert.Equal("{\"x\":1}", SettingsStore.ReadLocked(path));
-            await release;
         }
         finally
         {
+            release.Join();
             File.Delete(path);
         }
+        await Task.CompletedTask;
     }
 }
 
