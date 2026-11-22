@@ -219,6 +219,8 @@ public class FlyoutWindow : Window
     /// <summary>Live refraction behind the card; false (photo fallback) when it cannot start.</summary>
     bool TryRealGlass(IntPtr hwnd, AppSettings s, Theme theme)
     {
+        // over a full-screen app (a game) nothing may capture: the panel keeps the plain look
+        if (Monitors.IsFullScreen(Win32.GetForegroundWindow(), Monitors.ForWindow(hwnd))) return false;
         if (GlassRuntime.Device is not { } dev || !Win32.GetWindowRect(hwnd, out var w)) return false;
         var real = GlassSurface.TryCreate(hwnd, dev, out var why);
         if (real == null) { Log.Write($"panel glass: {why}"); return false; }

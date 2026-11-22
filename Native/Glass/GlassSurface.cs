@@ -30,6 +30,8 @@ public sealed class GlassSurface : IGlassSource, IDisposable
     static readonly object StaticGate = new();
 
     readonly IntPtr _owner;
+    readonly System.Windows.Threading.Dispatcher _ui = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+    static bool _displayHooked;
     readonly GlassDevice _dev;
     readonly GlassPacing _pacing = new(Stopwatch.GetTimestamp, Stopwatch.Frequency);
     readonly GlassWatchdog _watch = new(Stopwatch.GetTimestamp, Stopwatch.Frequency);
@@ -94,6 +96,7 @@ public sealed class GlassSurface : IGlassSource, IDisposable
             {
                 if (Live.Count == 0) WindowEvents.Start(OnWindowChange);
                 Live.Add(s);
+                if (!_displayHooked) { _displayHooked = true; Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => DisplayChanged(); }
             }
             return s;
         }
@@ -347,6 +350,22 @@ public sealed class GlassSurface : IGlassSource, IDisposable
 
     /// <summary>Called by the owner's own timer while in fallback, so a retry can happen without any frames.</summary>
     public void Tick() => CheckHealth();
+
+    /// <summary>Monitors added, removed or rearranged: every shown glass rebuilds its magnifier, capture and signal.</summary>
+    static void DisplayChanged()
+    {
+        List<GlassSurface> all;
+        lock (StaticGate) all = Live.ToList();
+        foreach (var s in all)
+            s._ui.BeginInvoke(() =>
+            {
+                if (s._disposed || s._paused) return;
+                s.Hide();
+                s._monitor = IntPtr.Zero; // the old handle may be gone
+                s.SetShape(s._glass, s._radius);
+                s.Show();
+            });
+    }
 
     // ------------------------------------------------------------------ change wake-ups
 
