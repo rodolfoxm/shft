@@ -13,7 +13,24 @@ public class GlassWatchdogTests
     public void Stall_2s_goes_to_fallback()
     {
         var w = New();
+        w.Requested();
         _now = 1900; Assert.Equal(GlassHealth.Live, w.State);
+        _now = 2100; Assert.Equal(GlassHealth.Fallback, w.State);
+    }
+
+    [Fact]
+    public void Idle_with_no_request_is_not_a_stall()
+    {
+        var w = New();
+        w.Requested(); _now = 50; w.Frame();
+        _now = 60_000; Assert.Equal(GlassHealth.Live, w.State);
+    }
+
+    [Fact]
+    public void Only_the_oldest_unanswered_request_counts()
+    {
+        var w = New();
+        w.Requested(); _now = 1500; w.Requested();
         _now = 2100; Assert.Equal(GlassHealth.Fallback, w.State);
     }
 
@@ -49,6 +66,7 @@ public class GlassWatchdogTests
     public void Stall_while_locked_is_not_a_failure()
     {
         var w = New();
+        w.Requested();
         w.Locked(true);
         _now = 60_000; Assert.Equal(GlassHealth.Live, w.State);
         w.Locked(false);

@@ -26,6 +26,8 @@ internal static class GlassNative
     [DllImport("user32.dll")] public static extern bool DestroyWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr h, int cmd);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern bool SetLayeredWindowAttributes(IntPtr h, uint key, byte alpha, uint flags);
     [DllImport("user32.dll")] public static extern bool InvalidateRect(IntPtr h, IntPtr r, bool erase);
     [DllImport("user32.dll")] public static extern bool PeekMessage(out MSG m, IntPtr h, uint min, uint max, uint remove);
@@ -36,6 +38,7 @@ internal static class GlassNative
     [DllImport("kernel32.dll")] public static extern bool SetWaitableTimer(IntPtr t, ref long due, int period, IntPtr cb, IntPtr arg, bool resume);
     [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);
 
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromPoint(POINT pt, uint flags);
     [DllImport("magnification.dll")] public static extern bool MagInitialize();
     [DllImport("magnification.dll")] public static extern bool MagUninitialize();
     [DllImport("magnification.dll")] public static extern bool MagSetWindowSource(IntPtr h, RECT r);
@@ -44,7 +47,7 @@ internal static class GlassNative
 
     public const uint WS_POPUP = 0x80000000, WS_VISIBLE = 0x10000000, WS_CHILD = 0x40000000;
     public const uint EX_LAYERED = 0x80000, EX_TOOL = 0x80, EX_NOACTIVATE = 0x08000000, EX_TRANSPARENT = 0x20, EX_NOREDIRECTIONBITMAP = 0x200000;
-    public const uint SWP_NOSIZE = 1, SWP_NOMOVE = 2, SWP_NOACTIVATE = 0x10;
+    public const uint SWP_NOSIZE = 1, SWP_NOMOVE = 2, SWP_NOACTIVATE = 0x10, SWP_ASYNCWINDOWPOS = 0x4000;
 
     public const string LayerClass = "ShftGlassLayer";
     static readonly WndProc Proc = DefWindowProc; // kept alive for the class

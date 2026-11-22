@@ -3,7 +3,7 @@ namespace Shft.Native.Glass;
 public enum GlassHealth { Live, Fallback, Off }
 
 /// <summary>
-/// Per-surface guard: no frame for 2 s while live, a lost device or a failed magnifier call → fallback glass,
+/// Per-surface guard: a requested frame not delivered within 2 s, a lost device or a failed magnifier call → fallback glass,
 /// retry after 30 s; three failures in a row without a frame in between → off until restart.
 /// </summary>
 public sealed class GlassWatchdog(Func<long> now, long tps)
@@ -11,7 +11,8 @@ public sealed class GlassWatchdog(Func<long> now, long tps)
     const int StallSeconds = 2, RetrySeconds = 30, MaxFailures = 3;
 
     readonly object _gate = new();
-    long _lastFrame = now(), _failedAt;
+    const long NotPending = long.MinValue;
+    long _pendingSince = NotPending, _failedAt;
     int _failures;
     bool _locked;
     GlassHealth _state = GlassHealth.Live;
@@ -20,7 +21,13 @@ public sealed class GlassWatchdog(Func<long> now, long tps)
 
     public void Frame()
     {
-        lock (_gate) { _lastFrame = now(); if (_state == GlassHealth.Live) _failures = 0; }
+        lock (_gate) { _pendingSince = NotPending; if (_state == GlassHealth.Live) _failures = 0; }
+    }
+
+    /// <summary>A new image was asked for; the oldest unanswered request is the one that can stall.</summary>
+    public void Requested()
+    {
+        lock (_gate) if (_pendingSince == NotPending) _pendingSince = now();
     }
 
     public void Failed(string why)
@@ -37,7 +44,7 @@ public sealed class GlassWatchdog(Func<long> now, long tps)
     /// <summary>Locked session or secure desktop: capture stops by design, not a failure.</summary>
     public void Locked(bool locked)
     {
-        lock (_gate) { _locked = locked; _lastFrame = now(); }
+        lock (_gate) { _locked = locked; _pendingSince = NotPending; }
     }
 
     public GlassHealth State
@@ -46,7 +53,7 @@ public sealed class GlassWatchdog(Func<long> now, long tps)
         {
             lock (_gate)
             {
-                if (_state == GlassHealth.Live && !_locked && now() - _lastFrame > StallSeconds * tps) Failed("stall");
+                if (_state == GlassHealth.Live && !_locked && _pendingSince != NotPending && now() - _pendingSince > StallSeconds * tps) Failed("stall");
                 return _state;
             }
         }
@@ -61,7 +68,7 @@ public sealed class GlassWatchdog(Func<long> now, long tps)
             {
                 if (_state != GlassHealth.Fallback || now() - _failedAt < RetrySeconds * tps) return false;
                 _state = GlassHealth.Live;
-                _lastFrame = now();
+                _pendingSince = NotPending;
                 return true;
             }
         }
