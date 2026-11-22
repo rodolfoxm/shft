@@ -40,6 +40,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\shft.ico" />
+    <EmbeddedResource Include="Native/Glass/GlassShader.hlsl" LogicalName="Shft.GlassShader.hlsl" />
     <Resource Include="Assets\hme.ico" />
     <!-- Program.Main is the entry point, so helper runs skip WPF entirely. -->
     <!-- GC compacts harder to keep the heap small (0 = off, 9 = most aggressive). -->

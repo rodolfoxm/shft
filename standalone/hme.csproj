@@ -36,6 +36,7 @@
     <Page Include="..\Ui\*.xaml" LinkBase="Ui" />
     <Resource Include="..\Assets\hme.ico" Link="Assets\hme.ico" />
     <Resource Include="..\Assets\shft.ico" Link="Assets\shft.ico" />
+    <EmbeddedResource Include="../Native/Glass/GlassShader.hlsl" LogicalName="Shft.GlassShader.hlsl" />
     <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
   </ItemGroup>
 
