@@ -73,6 +73,9 @@ public class FlyoutWindow : Window
         base.Content = Frame;
 
         Deactivated += (_, _) => SafeClose();
+        // content that loads after opening (audio devices, notifications) changes the size: the glass follows
+        SizeChanged += (_, _) => FitRealGlass();
+        LocationChanged += (_, _) => FitRealGlass();
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == System.Windows.Input.Key.Escape) SafeClose();
@@ -221,29 +224,37 @@ public class FlyoutWindow : Window
     {
         // over a full-screen app (a game) nothing may capture: the panel keeps the plain look
         if (Monitors.IsFullScreen(Win32.GetForegroundWindow(), Monitors.ForWindow(hwnd))) return false;
-        if (GlassRuntime.Device is not { } dev || !Win32.GetWindowRect(hwnd, out var w)) return false;
+        if (GlassRuntime.Device is not { } dev) return false;
         var real = GlassSurface.TryCreate(hwnd, dev, out var why);
         if (real == null) { Log.Write($"panel glass: {why}"); return false; }
         var dpi = VisualTreeHelper.GetDpi(this);
-        int mx = (int)(Frame.Margin.Left * dpi.DpiScaleX), my = (int)(Frame.Margin.Top * dpi.DpiScaleY);
         real.Style = s.GlassStyle;
         real.Dark = theme.IsDark;
         real.Blur = GlassDevice.BlurFor(s.GlassStyle, s.PanelBlur);
         real.Frost = GlassDevice.FrostFor(s.GlassTint, s.GlassStyle);
-        real.SetShape(new Int32Rect(w.Left + mx, w.Top + my, w.Width - 2 * mx, w.Height - 2 * my), Radius * dpi.DpiScaleX);
+        _real = real;
+        FitRealGlass();
         real.HealthChanged += h => Dispatcher.BeginInvoke(() =>
         {
             if (h == GlassHealth.Live || _real != real) return;
             DropRealGlass();
             DressPhoto(hwnd, SettingsStore.Current, Theme.Resolve(SettingsStore.Current), true);
         });
-        _real = real;
         _sync = new PanelGlassSync(Frame, real, _origin, dpi.DpiScaleX, dpi.DpiScaleY);
         _sync.Hidden(); // the card starts at opacity 0 too
         _surface.SetLook(theme.PanelTint, theme.TileRim, true, theme.IsDark); // "Transparência" decides how much glass shows
         real.Show();
         GlassSurface.ExclusionsChanged(); // other open magnifiers must now leave this panel out too
         return true;
+    }
+
+    /// <summary>The glass covers the card exactly; called again whenever the panel grows, shrinks or moves.</summary>
+    void FitRealGlass()
+    {
+        if (_real == null || !Win32.GetWindowRect(new WindowInteropHelper(this).Handle, out var w)) return;
+        var dpi = VisualTreeHelper.GetDpi(this);
+        int mx = (int)(Frame.Margin.Left * dpi.DpiScaleX), my = (int)(Frame.Margin.Top * dpi.DpiScaleY);
+        _real.SetShape(new Int32Rect(w.Left + mx, w.Top + my, w.Width - 2 * mx, w.Height - 2 * my), Radius * dpi.DpiScaleX);
     }
 
     void DropRealGlass()
