@@ -15,7 +15,7 @@ Estado em 2026-11-22, branch `real-glass`. "Vidro real (experimental)" continua 
 | Tela cheia com foco | zero quadros, zero sessões | zero |
 | Print Screen | Dock e vidro visíveis | visíveis |
 
-## Verificado no código integrado (testes automáticos, 236 aprovados)
+## Verificado no código integrado (testes automáticos, 235 aprovados)
 
 - `GlassSurfaceTests.Live_frame_has_no_owner_pixels_and_no_glass`: com um fundo de outro processo, a imagem da lupa
   não tem pixels da janela dona nem do próprio vidro por 6 quadros seguidos (o teste falha quando o vidro sai da
