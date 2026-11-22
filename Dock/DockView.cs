@@ -80,6 +80,9 @@ public sealed class DockView : Panel
         Background = null; // transparent pixels must stay click-through
     }
 
+    /// <summary>True while a live glass surface sits behind the bar (set by the window).</summary>
+    public bool RealGlass { get; set; }
+
     public void Configure(AppSettings s, Theme theme)
     {
         Edge = s.Edge;
@@ -90,7 +93,9 @@ public sealed class DockView : Panel
         // With glass on Windows 11 the blur's corners are rounded by Windows at a fixed radius; match it.
         _corner = s.Glass && BackdropWindow.RoundedBySystem ? BackdropWindow.SystemCornerRadius : s.CornerRadius;
 
-        _bar.SetLook(theme.BarFill, theme.BarBorder, s.LiquidGlass && !SystemParameters.HighContrast, theme.IsDark);
+        // over live glass only a light tint: the shader already frosts what is behind
+        var fill = RealGlass ? Color.FromArgb(0x30, theme.BarFill.R, theme.BarFill.G, theme.BarFill.B) : theme.BarFill;
+        _bar.SetLook(fill, theme.BarBorder, s.LiquidGlass && !SystemParameters.HighContrast, theme.IsDark);
         _label.Background = Theme.Brush(theme.LabelBack);
         _labelText.Foreground = Theme.Brush(theme.LabelText);
         foreach (var t in _tiles) t.SetLook(Edge, theme.Indicator);

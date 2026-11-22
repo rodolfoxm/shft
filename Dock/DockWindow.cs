@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Shft.Core;
 using Shft.Native;
+using Shft.Native.Glass;
 
 namespace Shft.Dock;
 
@@ -15,6 +16,8 @@ public sealed class DockWindow : Window
 {
     readonly DockView _view = new();
     readonly BackdropWindow _backdrop = new();
+    GlassSurface? _real; // live refraction (experimental); the backdrop is its fallback
+    GlassHealth _realHealth = GlassHealth.Live;
     readonly DispatcherTimer _poll;
     IntPtr _hwnd;
     HwndSource? _source;
@@ -221,6 +224,7 @@ public sealed class DockWindow : Window
         if (!s.Glass || bar.IsEmpty || _fullScreen || !IsVisible || _hwnd == IntPtr.Zero)
         {
             _backdrop.Conceal();
+            _real?.Hide(); // full screen in front: nothing captured, nothing drawn
             return;
         }
 
@@ -238,11 +242,44 @@ public sealed class DockWindow : Window
         if (rect.Width <= 2 || rect.Height <= 2)
         {
             _backdrop.Conceal();
+            _real?.Hide();
             return;
         }
 
         double radius = Math.Min(s.CornerRadius, _view.BarThickness / 2) * _monitor.Scale;
+        if (s.LiquidGlass && GlassRuntime.Wanted(s) && _realHealth == GlassHealth.Live && EnsureRealGlass())
+        {
+            var theme = Theme.Resolve(s);
+            _real!.Style = s.GlassStyle;
+            _real.Dark = theme.IsDark;
+            _real.Blur = GlassDevice.BlurFor(s.GlassStyle, s.PanelBlur);
+            _real.SetShape(new Int32Rect(rect.Left, rect.Top, rect.Width, rect.Height), radius); // moving only reshapes
+            _real.Show();
+            _backdrop.Conceal();
+            SetRealLook(true);
+            return;
+        }
+        _real?.Hide();
+        SetRealLook(false);
         _backdrop.Place(rect, (int)Math.Round(radius));
+    }
+
+    bool EnsureRealGlass()
+    {
+        if (_real != null) return true;
+        if (GlassRuntime.Device is not { } dev) { _realHealth = GlassHealth.Off; return false; }
+        _real = GlassSurface.TryCreate(_hwnd, dev, out var why);
+        if (_real == null) { Log.Write($"dock glass: {why}"); _realHealth = GlassHealth.Off; return false; }
+        _real.HealthChanged += h => Dispatcher.BeginInvoke(() => { _realHealth = h; SyncBackdrop(); });
+        return true;
+    }
+
+    void SetRealLook(bool on)
+    {
+        if (_view.RealGlass == on) return;
+        _view.RealGlass = on;
+        var s = SettingsStore.Current;
+        _view.Configure(s, Theme.Resolve(s));
     }
 
     void ApplyVisibility()
@@ -259,6 +296,7 @@ public sealed class DockWindow : Window
     {
         var s = SettingsStore.Current;
         _tick++;
+        if (_realHealth == GlassHealth.Fallback && _tick % 10 == 0) _real?.Tick(); // lets the glass retry after 30 s
 
         if (_tick % 5 == 0)
         {
@@ -338,6 +376,7 @@ public sealed class DockWindow : Window
         _appBar?.Dispose();
         Controller.Dispose();
         // On app shutdown WPF may already be closing the backdrop.
+        _real?.Dispose();
         try { _backdrop.Close(); } catch (InvalidOperationException) { }
         base.OnClosed(e);
     }
