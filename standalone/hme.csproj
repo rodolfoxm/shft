@@ -13,7 +13,7 @@
     <RootNamespace>Shft</RootNamespace>
     <ApplicationManifest>..\app.manifest</ApplicationManifest>
     <ApplicationIcon>..\Assets\hme.ico</ApplicationIcon>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <StartupObject>Shft.Hme.HmeProgram</StartupObject>
     <Product>hme.</Product>
     <AssemblyTitle>hme.</AssemblyTitle>

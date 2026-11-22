@@ -9,7 +9,7 @@ namespace Shft.Hme;
 /// </summary>
 public sealed class HmeEngine : IHome, IDisposable
 {
-    public const string Version = "2.0.0";
+    public const string Version = "2.1.0";
     const int TtlActive = 60, TtlIdle = 600, ActiveWindow = 300, RoomsEvery = 86400, PositivoBackoff = 60;
 
     readonly HmeConfig _cfg;
