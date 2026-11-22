@@ -650,3 +650,18 @@ public class SettingsReadTests
         }
     }
 }
+
+public class RealGlassSettingsTests
+{
+    [Fact] public void Real_glass_is_off_by_default() => Assert.False(new AppSettings().RealGlass);
+
+    [Fact] public void Glass_style_defaults_to_regular() => Assert.Equal(GlassStyle.Regular, new AppSettings().GlassStyle);
+
+    [Fact]
+    public void Old_settings_load_with_the_defaults()
+    {
+        var s = System.Text.Json.JsonSerializer.Deserialize<AppSettings>("{\"LiquidGlass\": true}")!;
+        Assert.False(s.RealGlass);
+        Assert.Equal(GlassStyle.Regular, s.GlassStyle);
+    }
+}

@@ -210,6 +210,11 @@ public sealed class SettingsWindow : Window
             Slider(0.1, 0.95, S.PanelOpacity, 0.05, v => $"{(1 - v) * 100:0}%", v => S.PanelOpacity = v), Glyph.Sun);
         Row(glass, "Intensidade do desfoque", null, Slider(4, 24, S.PanelBlur, 1, v => $"{v:0}", v => S.PanelBlur = (int)v), "\uE9E9");
         Row(glass, "Liquid Glass", "Brilho especular na borda e uma lente leve no contorno, como o vidro dos painéis da Apple.", Toggle(S.PanelRim, v => S.PanelRim = v), "\uE81E");
+        Row(glass, "Vidro real (experimental)", "Refrata ao vivo o que está atrás do Dock e dos painéis. Pausa sozinho em jogos e tela cheia.", Toggle(S.RealGlass, v => S.RealGlass = v), "\uE81E");
+        Row(glass, "Estilo do vidro", "Regular desfoca o fundo; Claro deixa ver quase nítido.", Choice(new[]
+        {
+            (GlassStyle.Regular, "Regular"), (GlassStyle.Clear, "Claro"),
+        }, S.GlassStyle, v => S.GlassStyle = v), "\uE81E");
         return page;
     }
 

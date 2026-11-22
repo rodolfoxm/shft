@@ -8,8 +8,13 @@
 | SQLitePCLRaw | Apache-2.0 | Dependência do item acima |
 | SQLite (e_sqlite3) | Domínio público | Dependência do item acima |
 | .NET Runtime e Windows Desktop Runtime | MIT | Incluídos no instalador e no pacote portátil |
+| Vortice.Windows (Direct3D11, DXGI, DirectComposition, D3DCompiler) | MIT | Desenho do vidro real na placa de vídeo |
 | xUnit (somente testes) | Apache-2.0 | Testes automatizados; não vai no app publicado |
 | Inno Setup (somente build) | Licença própria, permite distribuir instaladores | Gera o instalador; não é uma dependência do app |
+
+## Código adaptado
+
+- **Glasmio** (Copyright 2026 NEORUAA, Apache-2.0), que por sua vez adapta o **AndroidLiquidGlass** (Copyright 2025 Kyant, Apache-2.0): a curva de refração do vidro (deslocamento `amount × (1 − √(u(2−u)))` ao longo da normal de um retângulo arredondado) foi portada para HLSL em `Native/Glass/GlassShader.hlsl`. Nenhum asset do Glasmio nem da Apple foi copiado. Licença: https://www.apache.org/licenses/LICENSE-2.0
 
 ## Referências sem código copiado
 

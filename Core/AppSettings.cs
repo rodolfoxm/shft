@@ -147,6 +147,9 @@ public sealed class AppSettings
     /// <summary>How soft the panel's glass is: screen pixels merged into one sample.</summary>
     public int PanelBlur { get; set; } = 10;
     public bool PanelRim { get; set; } = true;
+    /// <summary>Experimental: glass that refracts what is behind the Dock and the panels, live (Windows magnifier + Direct3D).</summary>
+    public bool RealGlass { get; set; }
+    public Shft.Ui.GlassStyle GlassStyle { get; set; } = Shft.Ui.GlassStyle.Regular;
 
     // Applications
     public string AppsHotkey { get; set; } = "Alt+Space";
