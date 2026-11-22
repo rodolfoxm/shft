@@ -6,6 +6,9 @@ namespace Shft.Ui;
 /// <summary>The two glass materials of Apple's Liquid Glass: regular (frosted, readable) and clear (lets more through).</summary>
 public enum GlassStyle { Regular, Clear }
 
+/// <summary>How much tint the real glass carries, as in iOS 27: More Clear, Default, More Tinted.</summary>
+public enum GlassTint { Clearer, Default, Tinted }
+
 /// <summary>
 /// shft.'s Liquid Glass, for the surfaces Apple gives it (the Dock, panels that float over content, round controls):
 /// a specular rim lit from the top left with a faint reflection on the far edge, a sheen on top, a little depth at the

@@ -13,7 +13,7 @@ namespace Shft.Native.Glass;
 
 public readonly record struct GlassDraw(ID3D11RenderTargetView Target, ID3D11ShaderResourceView Source, int Width, int Height,
     float Radius, float OffsetX, float OffsetY, int SourceWidth, int SourceHeight, GlassStyle Style, bool Dark,
-    float Blur, Color? Tint);
+    float Blur, Color? Tint, float Frost = 0.22f);
 
 /// <summary>One D3D11 device for every glass surface; the immediate context is only touched under <see cref="Gate"/>.</summary>
 public sealed class GlassDevice : IDisposable
@@ -22,7 +22,7 @@ public sealed class GlassDevice : IDisposable
     struct Params
     {
         public float SizeX, SizeY, Radius, Height;
-        public float Amount, Blur, Dark, Clear;
+        public float Amount, Blur, Dark, Frost;
         public float OffX, OffY, SrcW, SrcH;
         public float TintR, TintG, TintB, TintA;
     }
@@ -72,8 +72,12 @@ public sealed class GlassDevice : IDisposable
         catch (Exception e) { why = e.Message; return null; }
     }
 
-    /// <summary>Body blur in px: Regular follows the panels' blur setting, Clear is almost sharp.</summary>
-    public static float BlurFor(GlassStyle style, int panelBlur) => style == GlassStyle.Clear ? 2 : panelBlur + 4;
+    /// <summary>Body blur in px from the blur slider: Regular blurs fully, Clear keeps it almost sharp.</summary>
+    public static float BlurFor(GlassStyle style, int panelBlur) => style == GlassStyle.Clear ? Math.Max(1, panelBlur / 5) : panelBlur + 4;
+
+    /// <summary>Tint mixed into the glass: More Clear, Default, More Tinted (Clear style frosts a little less).</summary>
+    public static float FrostFor(GlassTint tint, GlassStyle style) =>
+        (tint switch { GlassTint.Clearer => 0.06f, GlassTint.Tinted => 0.45f, _ => 0.22f }) * (style == GlassStyle.Clear ? 0.6f : 1f);
 
     public void Draw(GlassDraw d)
     {
@@ -81,7 +85,7 @@ public sealed class GlassDevice : IDisposable
         var prm = new Params
         {
             SizeX = d.Width, SizeY = d.Height, Radius = d.Radius, Height = BandHeight,
-            Amount = Amount, Blur = d.Blur, Dark = d.Dark ? 1 : 0, Clear = d.Style == GlassStyle.Clear ? 1 : 0,
+            Amount = Amount, Blur = d.Blur, Dark = d.Dark ? 1 : 0, Frost = d.Frost,
             OffX = d.OffsetX, OffY = d.OffsetY, SrcW = d.SourceWidth, SrcH = d.SourceHeight,
             TintR = tint.R / 255f, TintG = tint.G / 255f, TintB = tint.B / 255f, TintA = d.Tint == null ? 0 : tint.A / 255f * 0.5f,
         };

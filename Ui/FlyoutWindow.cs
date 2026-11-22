@@ -229,6 +229,7 @@ public class FlyoutWindow : Window
         real.Style = s.GlassStyle;
         real.Dark = theme.IsDark;
         real.Blur = GlassDevice.BlurFor(s.GlassStyle, s.PanelBlur);
+        real.Frost = GlassDevice.FrostFor(s.GlassTint, s.GlassStyle);
         real.SetShape(new Int32Rect(w.Left + mx, w.Top + my, w.Width - 2 * mx, w.Height - 2 * my), Radius * dpi.DpiScaleX);
         real.HealthChanged += h => Dispatcher.BeginInvoke(() =>
         {
@@ -239,8 +240,7 @@ public class FlyoutWindow : Window
         _real = real;
         _sync = new PanelGlassSync(Frame, real, _origin, dpi.DpiScaleX, dpi.DpiScaleY);
         _sync.Hidden(); // the card starts at opacity 0 too
-        // a light tint over live glass: the shader already frosts it
-        _surface.SetLook(Color.FromArgb(0x30, theme.PanelTint.R, theme.PanelTint.G, theme.PanelTint.B), theme.TileRim, true, theme.IsDark);
+        _surface.SetLook(theme.PanelTint, theme.TileRim, true, theme.IsDark); // "Transparência" decides how much glass shows
         real.Show();
         GlassSurface.ExclusionsChanged(); // other open magnifiers must now leave this panel out too
         return true;

@@ -215,6 +215,10 @@ public sealed class SettingsWindow : Window
         {
             (GlassStyle.Regular, "Regular"), (GlassStyle.Clear, "Claro"),
         }, S.GlassStyle, v => S.GlassStyle = v), "\uE81E");
+        Row(glass, "Tom do vidro", "Vidro real: mais claro deixa o fundo aparecer; mais tingido dá mais contraste ao texto.", Choice(new[]
+        {
+            (GlassTint.Clearer, "Mais claro"), (GlassTint.Default, "Padrão"), (GlassTint.Tinted, "Mais tingido"),
+        }, S.GlassTint, v => S.GlassTint = v), "\uE81E");
         return page;
     }
 
@@ -286,7 +290,7 @@ public sealed class SettingsWindow : Window
         Row(place, "Distância da borda da tela", null, Slider(0, 30, S.EdgeGap, 1, v => $"{v:0} px", v => S.EdgeGap = v), "\uE7C2");
 
         var look = Card(page, "Barra");
-        Row(look, "Desfoque atrás da barra", "Leve não tem tom. Acrílico é o material do Windows, com tom e granulado.", Choice(new[]
+        Row(look, "Desfoque atrás da barra", "Leve não tem tom. Acrílico é o material do Windows, com tom e granulado. Com o vidro real ligado, vale o vidro real; Nenhum desliga.", Choice(new[]
         {
             (0, "Nenhum"), (1, "Leve"), (2, "Acrílico"),
         }, !S.Glass ? 0 : S.Acrylic ? 2 : 1, v => { S.Glass = v > 0; S.Acrylic = v == 2; }), "\uE81E");

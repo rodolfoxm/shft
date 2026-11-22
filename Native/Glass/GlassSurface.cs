@@ -58,10 +58,22 @@ public sealed class GlassSurface : IGlassSource, IDisposable
     public IDCompositionDevice Composition => _dcomp;
     public event Action<GlassHealth>? HealthChanged;
 
-    public GlassStyle Style { get; set; } = GlassStyle.Regular;
-    public bool Dark { get; set; } = true;
-    public float Blur { get; set; } = 14;
-    public Color? Tint { get; set; }
+    GlassStyle _style = GlassStyle.Regular;
+    bool _dark = true;
+    float _blur = 14, _frost = 0.22f;
+    Color? _tint;
+    public GlassStyle Style { get => _style; set { if (_style != value) { _style = value; Restyle(); } } }
+    public bool Dark { get => _dark; set { if (_dark != value) { _dark = value; Restyle(); } } }
+    public float Blur { get => _blur; set { if (_blur != value) { _blur = value; Restyle(); } } }
+    public float Frost { get => _frost; set { if (_frost != value) { _frost = value; Restyle(); } } }
+    public Color? Tint { get => _tint; set { if (_tint != value) { _tint = value; Restyle(); } } }
+
+    /// <summary>Settings changed: forget the last image so the next one is drawn even if nothing moved behind.</summary>
+    void Restyle()
+    {
+        _previous = null;
+        if (_built) Poke();
+    }
 
     /// <summary>Test hook: the next source image as BGRA bytes (width = source width).</summary>
     internal TaskCompletionSource<(byte[] Pixels, int Width, int Height)>? NextSource;
@@ -305,7 +317,7 @@ public sealed class GlassSurface : IGlassSource, IDisposable
                 if (NextSource is { } wanted) { NextSource = null; wanted.TrySetResult(Read(ctx, _srcTex, _src.Width, _src.Height)); }
                 if (_dev.SameAsLast(_srv, _src.Width, _src.Height, ref _previous)) return;
                 _dev.Draw(new GlassDraw(_rtv, _srv, _glass.Width, _glass.Height, _radius, _glass.X - _src.X, _glass.Y - _src.Y,
-                    _src.Width, _src.Height, Style, Dark, Blur, Tint));
+                    _src.Width, _src.Height, _style, _dark, _blur, _tint, _frost));
                 _swap.Present(0, PresentFlags.None);
             }
         }

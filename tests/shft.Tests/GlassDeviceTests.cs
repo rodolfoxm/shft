@@ -40,3 +40,18 @@ public class GlassDeviceTests
         Assert.Equal(2, GlassDevice.BlurFor(GlassStyle.Clear, 10));
     }
 }
+
+public class GlassTintTests
+{
+    [Fact]
+    public void Tint_levels_go_from_clearer_to_tinted()
+    {
+        float a = GlassDevice.FrostFor(GlassTint.Clearer, GlassStyle.Regular), b = GlassDevice.FrostFor(GlassTint.Default, GlassStyle.Regular),
+              c = GlassDevice.FrostFor(GlassTint.Tinted, GlassStyle.Regular);
+        Assert.True(a < b && b < c);
+    }
+
+    [Fact]
+    public void Blur_slider_moves_clear_style_too() =>
+        Assert.True(GlassDevice.BlurFor(GlassStyle.Clear, 24) > GlassDevice.BlurFor(GlassStyle.Clear, 4));
+}

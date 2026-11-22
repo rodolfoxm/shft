@@ -9,7 +9,7 @@ cbuffer Params : register(b0)
     float amount;       // max displacement
     float blurRadius;
     float dark;
-    float clear;        // 1 = Clear style (thin frost)
+    float frost;        // how much of the tint colour is mixed in (tint level)
     float2 srcOffset;   // glass (0,0) inside the source image
     float2 srcSize;
     float4 tint;        // rgb + strength (a = 0: no tint)
@@ -68,7 +68,6 @@ float4 PS(VSOut i) : SV_Target
     float3 col = Body(p - n * disp);
     float l = dot(col, float3(0.299, 0.587, 0.114));
     col = lerp(float3(l, l, l), col, 1.2);
-    float frost = clear > 0.5 ? 0.08 : 0.22;
     col = dark > 0.5 ? lerp(col, float3(0.10, 0.10, 0.12), frost) : lerp(col, float3(1, 1, 1), frost);
     col = lerp(col, tint.rgb, tint.a);
     float edge = 1 - smoothstep(0, 2.5, -sd);

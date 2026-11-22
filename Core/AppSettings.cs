@@ -150,6 +150,7 @@ public sealed class AppSettings
     /// <summary>Experimental: glass that refracts what is behind the Dock and the panels, live (Windows magnifier + Direct3D).</summary>
     public bool RealGlass { get; set; }
     public Shft.Ui.GlassStyle GlassStyle { get; set; } = Shft.Ui.GlassStyle.Regular;
+    public Shft.Ui.GlassTint GlassTint { get; set; } = Shft.Ui.GlassTint.Default;
 
     // Applications
     public string AppsHotkey { get; set; } = "Alt+Space";

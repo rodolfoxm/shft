@@ -253,6 +253,7 @@ public sealed class DockWindow : Window
             _real!.Style = s.GlassStyle;
             _real.Dark = theme.IsDark;
             _real.Blur = GlassDevice.BlurFor(s.GlassStyle, s.PanelBlur);
+            _real.Frost = GlassDevice.FrostFor(s.GlassTint, s.GlassStyle);
             _real.SetShape(new Int32Rect(rect.Left, rect.Top, rect.Width, rect.Height), radius); // moving only reshapes
             _real.Show();
             _backdrop.Conceal();
