@@ -30,6 +30,7 @@ public sealed class ControlCenterWindow : FlyoutWindow
     public ControlCenterWindow(string? page = null)
     {
         Radius = 26;
+        Bare = !SettingsStore.Current.ControlCenterBackground;
         Inner = new Thickness(12);
         _pageHost.Width = Width_;
         Body = _pageHost;
@@ -57,7 +58,8 @@ public sealed class ControlCenterWindow : FlyoutWindow
     static Border Card(UIElement child, double radius = 18, Thickness? padding = null)
     {
         var b = new Border { CornerRadius = new CornerRadius(radius), Padding = padding ?? new Thickness(12), BorderThickness = new Thickness(1), Child = child };
-        b.SetResourceReference(Border.BackgroundProperty, "TileBrush");
+        // with no panel behind, each group carries the panel's glass tint ("Transparência") itself
+        b.SetResourceReference(Border.BackgroundProperty, SettingsStore.Current.ControlCenterBackground ? "TileBrush" : "PanelTintBrush");
         b.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
         return b;
     }

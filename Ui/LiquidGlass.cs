@@ -77,12 +77,14 @@ public static class LiquidGlass
     {
         var body = Freeze(new SolidColorBrush(Fill(fill, style, tint)));
         // Light catching the curved top, and a little shade where the glass is thickest at the bottom.
-        var sheen = Gradient(new Point(0, 0), new Point(0, 1), (White(dark ? (byte)0x1C : (byte)0x26), 0), (White(0), 0.5));
-        var shade = Gradient(new Point(0, 0), new Point(0, 1), (Black(0), 0.7), (Black(dark ? (byte)0x18 : (byte)0x0C), 1));
+        bool gradient = Shft.Core.SettingsStore.Current.GlassGradient;
+        Brush none = Freeze(new SolidColorBrush(Colors.Transparent));
+        Brush sheen = gradient ? Gradient(new Point(0, 0), new Point(0, 1), (White(dark ? (byte)0x1C : (byte)0x26), 0), (White(0), 0.5)) : none;
+        Brush shade = gradient ? Gradient(new Point(0, 0), new Point(0, 1), (Black(0), 0.7), (Black(dark ? (byte)0x18 : (byte)0x0C), 1)) : none;
         double strength = style == GlassStyle.Clear ? 1.25 : 1;
         var rim = Freeze(new Pen(Rim(dark, strength), 1.1));
         var inner = Freeze(new Pen(Freeze(new SolidColorBrush(White(dark ? (byte)0x0E : (byte)0x18))), 1)); // the glass has thickness
-        return new Look(body, sheen, style == GlassStyle.Clear ? Freeze(new SolidColorBrush(Colors.Transparent)) : shade, rim, inner);
+        return new Look(body, sheen, style == GlassStyle.Clear ? none : shade, rim, inner);
     }
 
     public static void Draw(DrawingContext dc, double w, double h, double r, Look look)

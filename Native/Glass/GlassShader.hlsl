@@ -74,7 +74,6 @@ float4 PS(VSOut i) : SV_Target
     float light = saturate(dot(n, normalize(float2(-0.6, -0.8))));
     float back = saturate(dot(n, normalize(float2(0.6, 0.8))));
     col += edge * (0.45 * light + 0.18 * back + 0.05);
-    col *= 1 - 0.06 * saturate(p.y / size.y - 0.6); // slight depth at the bottom
     return float4(saturate(col) * a, a);
 }
 

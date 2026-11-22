@@ -658,6 +658,13 @@ public class RealGlassSettingsTests
 {
     [Fact] public void Real_glass_is_off_by_default() => Assert.False(new AppSettings().RealGlass);
 
+    [Fact] public void Glass_is_flat_and_control_center_keeps_its_card_by_default()
+    {
+        var s = new AppSettings();
+        Assert.False(s.GlassGradient);
+        Assert.True(s.ControlCenterBackground);
+    }
+
     [Fact] public void Glass_style_defaults_to_regular() => Assert.Equal(GlassStyle.Regular, new AppSettings().GlassStyle);
 
     [Fact]

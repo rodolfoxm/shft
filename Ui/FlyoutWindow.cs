@@ -106,6 +106,9 @@ public class FlyoutWindow : Window
 
     protected Thickness Inner { set => _content.Padding = value; }
 
+    /// <summary>No card behind the content (no glass, no shadow): the content's own groups are the glass.</summary>
+    protected bool Bare { get; set; }
+
     /// <summary>An opaque card instead of glass, for the sticky note.</summary>
     protected Color Paper { set => _paper = value; }
 
@@ -208,6 +211,12 @@ public class FlyoutWindow : Window
     {
         var s = SettingsStore.Current;
         var theme = Theme.Resolve(s);
+        if (Bare)
+        {
+            _surface.Visibility = Visibility.Collapsed;
+            Frame.Effect = null;
+            return;
+        }
         if (_paper is Color paper)
         {
             _surface.SetLook(paper, theme.TileRim, false, theme.IsDark);

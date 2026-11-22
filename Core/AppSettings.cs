@@ -151,6 +151,10 @@ public sealed class AppSettings
     public bool RealGlass { get; set; }
     public Shft.Ui.GlassStyle GlassStyle { get; set; } = Shft.Ui.GlassStyle.Regular;
     public Shft.Ui.GlassTint GlassTint { get; set; } = Shft.Ui.GlassTint.Default;
+    /// <summary>Light on top and shade at the bottom of the glass. Off = flat, like macOS.</summary>
+    public bool GlassGradient { get; set; }
+    /// <summary>Off: the Control Center has no card behind it; each group floats as its own glass, like macOS.</summary>
+    public bool ControlCenterBackground { get; set; } = true;
 
     // Applications
     public string AppsHotkey { get; set; } = "Alt+Space";
