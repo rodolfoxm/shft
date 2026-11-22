@@ -305,8 +305,11 @@ public sealed class MenuBarWindow : Window
     public void ToggleControlCenter() => Panel("controls", () => new ControlCenterWindow(), _controls);
 
     /// <summary>hme.'s house: its panel, or the panel of the hme.exe that already owns the engine.</summary>
+    bool _hmeOpening;
+
     public async void ToggleHme()
     {
+        if (_hmeOpening) return; // the engine is still starting from the previous click
         var wasOpen = _keyAtPress ?? (_open != null ? _openKey : null);
         if (wasOpen == "hme")
         {
@@ -315,7 +318,10 @@ public sealed class MenuBarWindow : Window
             _open = null;
             return;
         }
-        var host = await _hub.HmeHost();
+        _hmeOpening = true;
+        Shft.Hme.EngineHost? host;
+        try { host = await _hub.HmeHost(); }
+        finally { _hmeOpening = false; }
         if (host != null) Panel("hme", () => new Shft.Hme.HmePanel(host), _hmeButton);
     }
 
@@ -585,6 +591,8 @@ public sealed class MenuBarWindow : Window
         _bellDot.Visibility = NotificationService.Instance.Items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    readonly List<(TrayEntry Entry, Image Image, Button Button)> _pinned = new();
+
     public void OnTray()
     {
         if (_drag.IsDragging)
@@ -592,10 +600,23 @@ public sealed class MenuBarWindow : Window
             _trayChanged = true; // a tray icon can change at any moment; never rebuild under the pointer
             return;
         }
-        foreach (var key in _slots.Keys.Where(k => k.StartsWith("pin:", StringComparison.Ordinal)).ToList()) _slots.Remove(key);
         var pins = SettingsStore.Current.PinnedTray;
+        var pinned = TrayHost.Instance.Items.Where(i => pins.Contains(i.PinKey)).OrderBy(i => pins.IndexOf(i.PinKey)).ToList();
+        if (pinned.Count == _pinned.Count && pinned.Zip(_pinned).All(p => ReferenceEquals(p.First, p.Second.Entry)))
+        {
+            // Same icons as before (an app just updated its picture or tooltip): swap them in place, no rebuild.
+            foreach (var (entry, image, button) in _pinned)
+            {
+                if (image.Source != entry.Icon) image.Source = entry.Icon;
+                var tip = entry.Tip.Length > 0 ? entry.Tip : entry.Name;
+                if (!Equals(button.ToolTip, tip)) button.ToolTip = tip;
+            }
+            return;
+        }
+        _pinned.Clear();
+        foreach (var key in _slots.Keys.Where(k => k.StartsWith("pin:", StringComparison.Ordinal)).ToList()) _slots.Remove(key);
         var seen = new Dictionary<string, int>();
-        foreach (var e in TrayHost.Instance.Items.Where(i => pins.Contains(i.PinKey)).OrderBy(i => pins.IndexOf(i.PinKey)))
+        foreach (var e in pinned)
         {
             var entry = e;
             var image = new Image { Source = e.Icon, Width = 16, Height = 16 };
@@ -607,6 +628,7 @@ public sealed class MenuBarWindow : Window
             AutomationProperties.SetName(b, e.Name);
             b.MouseRightButtonUp += (_, ev) => { ev.Handled = true; TrayHost.Instance.Click(entry, right: true); };
             _drag.Attach(b, b);
+            _pinned.Add((e, image, b));
             // One app can pin several icons; the number keeps each one's place.
             seen[e.PinKey] = seen.GetValueOrDefault(e.PinKey) + 1;
             _slots[$"pin:{e.PinKey}#{seen[e.PinKey]}"] = b;

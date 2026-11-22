@@ -203,7 +203,8 @@ public class FlyoutWindow : Window
             _surface.SetLook(paper, theme.TileRim, false, theme.IsDark);
             return;
         }
-        _surface.SetLook(theme.PanelTint, theme.TileRim, s.PanelRim, theme.IsDark);
+        bool rim = s.PanelRim && !SystemParameters.HighContrast; // high contrast: plain edges, no glass effects
+        _surface.SetLook(theme.PanelTint, theme.TileRim, rim, theme.IsDark);
         var hwnd = new WindowInteropHelper(this).Handle;
         if (Win32.GetWindowRect(hwnd, out var w))
         {
@@ -214,7 +215,7 @@ public class FlyoutWindow : Window
                 var brush = new ImageBrush(picture) { Stretch = Stretch.Fill };
                 RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.HighQuality);
                 _glass.Background = brush;
-                if (s.PanelRim)
+                if (rim)
                 {
                     // The same picture, magnified a little and shown only along the edge: the lens of Liquid Glass.
                     _lens.Background = new ImageBrush(picture) { Stretch = Stretch.Fill, RelativeTransform = new ScaleTransform(1.035, 1.035, 0.5, 0.5) };

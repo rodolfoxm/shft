@@ -64,9 +64,15 @@ public sealed class EngineHost : IDisposable
     /// <summary>After the settings were saved: a new home from the new config.</summary>
     public async Task Reload()
     {
+        var old = Home;
+        var oldConfig = Config;
         Config = HmeConfig.Load(Config.Folder);
         (Home, BootError) = await HmeEngineFactory.Create(Config, Usage);
+        if (old is HmeEngine before && Home is HmeEngine after && oldConfig.AccessId == Config.AccessId && oldConfig.Region == Config.Region)
+            after.Adopt(before); // same account: keep what was already read
         Changed?.Invoke();
+        // The old engine may still be answering a request; let it finish before its connections close.
+        if (old is IDisposable done) _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ => done.Dispose(), TaskScheduler.Default);
     }
 
     /// <summary>Hands a home the settings window already built (demo, or a fresh connection) without connecting twice.</summary>
@@ -80,6 +86,7 @@ public sealed class EngineHost : IDisposable
     {
         try { _api?.Close(); }
         catch (ObjectDisposedException) { }
+        (Home as IDisposable)?.Dispose();
         Usage.Flush();
         try { _mutex.ReleaseMutex(); }
         catch (ApplicationException ex) { Log.Write("hme: engine mutex released from another thread: " + ex.Message); }

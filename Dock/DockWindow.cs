@@ -105,11 +105,26 @@ public sealed class DockWindow : Window
                 Dispatcher.BeginInvoke(ApplyLayout, DispatcherPriority.Background);
                 break;
             case WM_SETTINGCHANGE:
-                // Windows' colour mode or work area changed.
-                Dispatcher.BeginInvoke(() => Controller.ApplySettings(), DispatcherPriority.Background);
+                // Windows' colour mode or work area changed; Windows sends several at once, apply after the burst.
+                _settingChange ??= NewSettingTimer();
+                _settingChange.Stop();
+                _settingChange.Start();
                 break;
         }
         return IntPtr.Zero;
+    }
+
+    DispatcherTimer? _settingChange;
+
+    DispatcherTimer NewSettingTimer()
+    {
+        var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            Controller.ApplySettings();
+        };
+        return timer;
     }
 
     /// <summary>Re-reads the settings and places the window, the app bar and the backdrop.</summary>
@@ -260,7 +275,7 @@ public sealed class DockWindow : Window
 
         if (!Win32.GetCursorPos(out var c)) return;
         bool inWindow = c.X >= _windowRect.Left && c.X < _windowRect.Right && c.Y >= _windowRect.Top && c.Y < _windowRect.Bottom;
-        if (inWindow) _view.Wake();
+        if (inWindow || _view.IsHovering) _view.Wake();
 
         if (!s.AutoHide)
         {

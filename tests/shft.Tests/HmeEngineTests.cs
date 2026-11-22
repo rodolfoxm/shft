@@ -363,3 +363,99 @@ public sealed class HmeReviewFixTests : IDisposable
         Assert.NotNull(s.Notice);
     }
 }
+
+public sealed class HmeAuditFixTests : IDisposable
+{
+    readonly string _dir = Path.Combine(Path.GetTempPath(), "hme-audit-" + Guid.NewGuid().ToString("N"));
+    DateTime _now = new(2026, 11, 21, 10, 0, 0);
+
+    public HmeAuditFixTests() => Directory.CreateDirectory(_dir);
+
+    public void Dispose() => Directory.Delete(_dir, true);
+
+    [Fact] // audit 1: a refused connection takes ~2 s on Windows; nobody listening must answer at once
+    public async Task Probe_is_fast_when_nothing_listens()
+    {
+        var free = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        free.Start();
+        int port = ((System.Net.IPEndPoint)free.LocalEndpoint).Port;
+        free.Stop();
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        Assert.False(await LocalApi.IsOldControleCasa(port));
+        Assert.False(await LocalApi.AskShow(port));
+        Assert.True(watch.ElapsedMilliseconds < 500, $"took {watch.ElapsedMilliseconds} ms");
+    }
+
+    HmeConfig IrConfig()
+    {
+        var cfg = HmeConfig.Load(_dir);
+        cfg.Ac["type"] = "ir";
+        cfg.Ac["infrared_id"] = "H";
+        cfg.Ac["remote_id"] = "R";
+        cfg.Ac["method"] = "tecla por tecla (v2)";
+        cfg.HasAc = true;
+        return cfg;
+    }
+
+    static FakeCloud Cloud() => new()
+    {
+        Answer = (_, p, _) => p.EndsWith("/ac/status", StringComparison.Ordinal)
+            ? FakeCloud.Ok(new JsonObject { ["power"] = "1", ["mode"] = 0, ["temp"] = 24, ["wind"] = 0 })
+            : p == "/v1.0/iot-01/associated-users/devices" ? FakeCloud.Ok(new JsonObject { ["devices"] = new JsonArray(), ["has_more"] = false }) : FakeCloud.Ok(),
+    };
+
+    [Fact] // audit 2: the IR status follows the list's TTL instead of costing a call per read
+    public async Task Ac_status_is_cached_like_the_list()
+    {
+        var cloud = Cloud();
+        var e = new HmeEngine(IrConfig(), cloud, new Usage(_dir, () => _now), new SavedList(_dir), null, () => _now);
+        e.MarkActivity();
+        await e.State();
+        await e.State();
+        _now = _now.AddSeconds(20);
+        await e.SetAc(new AcChange(Temp: 22));
+        Assert.Equal(1, cloud.Calls.Count(c => c.Path.EndsWith("/ac/status", StringComparison.Ordinal)));
+        var s = await e.State();
+        Assert.Equal(22, s.Ac!.Temp); // what was sent, not a stale read
+        _now = _now.AddSeconds(61);
+        await e.State();
+        Assert.Equal(2, cloud.Calls.Count(c => c.Path.EndsWith("/ac/status", StringComparison.Ordinal)));
+    }
+
+    [Fact] // audit 2: saving the settings must not cost a fresh list and the daily rooms again
+    public async Task Reloaded_engine_keeps_the_cache()
+    {
+        var cloud = Cloud();
+        var cfg = IrConfig();
+        var first = new HmeEngine(cfg, cloud, new Usage(_dir, () => _now), new SavedList(_dir), null, () => _now);
+        await first.State();
+        int calls = cloud.Calls.Count;
+        var second = new HmeEngine(cfg, cloud, new Usage(_dir, () => _now), new SavedList(_dir), null, () => _now);
+        second.Adopt(first);
+        await second.State();
+        Assert.Equal(calls, cloud.Calls.Count);
+    }
+
+    [Fact] // audit 3: a config that cannot be read right now is never overwritten with defaults
+    public void Locked_config_is_not_overwritten()
+    {
+        var path = Path.Combine(_dir, "config.json");
+        File.WriteAllText(path, """{"access_id":"KEEP"}""");
+        HmeConfig cfg;
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+            cfg = HmeConfig.Load(_dir);
+        Assert.True(cfg.ReadFailed);
+        Assert.Throws<IOException>(() => cfg.Save());
+        Assert.Contains("KEEP", File.ReadAllText(path));
+    }
+
+    [Fact] // audit 15: token requests count against the quota too
+    public async Task Token_requests_are_counted()
+    {
+        var usage = new Usage(_dir);
+        var http = new FakeHttp { Reply = r => """{"success":true,"result":{"access_token":"TOK"}}""" };
+        using var cloud = new TuyaCloud("us", "K", "S", usage, http);
+        await cloud.Connect();
+        Assert.Equal(1, usage.Today);
+    }
+}

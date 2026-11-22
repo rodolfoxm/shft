@@ -7,7 +7,7 @@ namespace Shft.Hme;
 /// core.py's Tuya backend plus the Positivo account: device list cached by how busy the panel is, commands that
 /// update the cache instead of reading the cloud again, and the last good list when the cloud fails.
 /// </summary>
-public sealed class HmeEngine : IHome
+public sealed class HmeEngine : IHome, IDisposable
 {
     public const string Version = "2.0.0";
     const int TtlActive = 60, TtlIdle = 600, ActiveWindow = 300, RoomsEvery = 86400, PositivoBackoff = 60;
@@ -26,6 +26,8 @@ public sealed class HmeEngine : IHome
     List<JsonObject> _cache;
     DateTime _cacheAt = DateTime.MinValue, _activity = DateTime.MinValue, _roomsAt = DateTime.MinValue;
     DateTime _positivoAt = DateTime.MinValue, _positivoFailedAt = DateTime.MinValue;
+    AcState? _acState;
+    DateTime _acAt = DateTime.MinValue;
     Dictionary<string, string> _smartLifeRooms = new();
     bool _detected;
     string? _listError;
@@ -228,10 +230,39 @@ public sealed class HmeEngine : IHome
         int? temp = null;
         if (_cfg.HasAc)
         {
-            ac = acOverride ?? (cacheOnly ? null : await _ac.State());
+            ac = acOverride ?? (cacheOnly ? _acState : await AcStateCached());
             temp = cacheOnly ? null : await _ac.RoomTemp();
         }
         return new HomeState(false, HmeConfig.Str(_cfg.Ac["room_name"]) is { Length: > 0 } rn ? rn : "Quarto", temp, ac, devs, Rooms.Order(devs, _cfg), Notice());
+    }
+
+    /// <summary>The AC's state on the same clock as the device list: each read of an IR status is a cloud call.</summary>
+    async Task<AcState> AcStateCached()
+    {
+        if (_acState == null || (_now() - _acAt).TotalSeconds >= Ttl) (_acState, _acAt) = (await _ac.State(), _now());
+        return _acState;
+    }
+
+    /// <summary>
+    /// A new engine for the same account (settings were saved) starts from the old one's reads: the device list,
+    /// the daily rooms, the command routes and, for the same AC, its state. Saving the settings costs no calls.
+    /// </summary>
+    public void Adopt(HmeEngine old)
+    {
+        (_cache, _cacheAt, _listError) = (old._cache, old._cacheAt, old._listError);
+        (_roomsAt, _smartLifeRooms, _activity) = (old._roomsAt, old._smartLifeRooms, old._activity);
+        foreach (var (id, route) in old._routes) _routes[id] = route;
+        if (_cfg.HasAc && old._ac.OwnIds.SequenceEqual(_ac.OwnIds) && old._ac.Type == _ac.Type)
+            (_acState, _acAt, _detected) = (old._acState, old._acAt, old._detected);
+    }
+
+    public void Dispose()
+    {
+        (_cloud as IDisposable)?.Dispose();
+        Positivo?.Dispose();
+        _commands.Dispose();
+        _listGate.Dispose();
+        _positivoGate.Dispose();
     }
 
     string? Notice()
@@ -246,7 +277,12 @@ public sealed class HmeEngine : IHome
     {
         MarkActivity();
         await _commands.WaitAsync();
-        try { return await Build(await _ac.Set(change), cacheOnly: false); }
+        try
+        {
+            var current = _acState != null && (_now() - _acAt).TotalSeconds < Ttl ? _acState : null;
+            (_acState, _acAt) = (await _ac.Set(change, current), _now());
+            return await Build(_acState, cacheOnly: false);
+        }
         finally { _commands.Release(); }
     }
 

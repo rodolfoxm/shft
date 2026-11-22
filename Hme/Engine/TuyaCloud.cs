@@ -69,6 +69,7 @@ public sealed class TuyaCloud : ICloud, IDisposable
     async Task FetchToken()
     {
         _token = null;
+        _usage.Count(); // the token request is a call on the quota too
         var r = await Send("/v1.0/token?grant_type=1", "GET", "", null);
         if (!Ok(r)) throw new HmeCloudException(ErrorText(r));
         _token = HmeConfig.Str(r["result"]?["access_token"]);

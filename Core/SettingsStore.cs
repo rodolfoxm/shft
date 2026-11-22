@@ -56,13 +56,21 @@ public static class SettingsStore
                 Path.Combine(appData, "com.seelen.seelen-ui", "data", "seelen-fancy-toolbar", "state.yml"));
             if (File.Exists(FilePath))
             {
-                var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Options);
+                var loaded = JsonSerializer.Deserialize<AppSettings>(ReadLocked(FilePath), Options);
                 if (loaded != null)
                 {
                     Current = loaded;
                     return Current;
                 }
             }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Held by a sync or backup tool at sign-in: run on defaults, but never write them over the real file.
+            Log.Write("settings not readable right now, not saving this session: " + ex.Message);
+            _unreadable = true;
+            Current = Defaults();
+            return Current;
         }
         catch (Exception ex)
         {
@@ -75,8 +83,26 @@ public static class SettingsStore
         return Current;
     }
 
+    static bool _unreadable;
+
+    /// <summary>Reads a file another program may hold for a moment, trying a few times before giving up.</summary>
+    internal static string ReadLocked(string path)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try { return File.ReadAllText(path); }
+            catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && attempt < 3) { Thread.Sleep(200); }
+        }
+    }
+
     public static void Save(bool notify = true)
     {
+        if (_unreadable)
+        {
+            Log.Write("settings not saved: the file could not be read at start");
+            if (notify) Changed?.Invoke();
+            return;
+        }
         try
         {
             Directory.CreateDirectory(DataFolder);

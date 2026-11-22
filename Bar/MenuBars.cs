@@ -23,6 +23,7 @@ public sealed class MenuBars : IDisposable
     bool _full, _sampling;
     bool _purging;
     Hme.EngineHost? _hme;
+    Task<Hme.EngineHost?>? _hmeStarting;
 
     public IntPtr Foreground { get; private set; }
 
@@ -192,9 +193,21 @@ public sealed class MenuBars : IDisposable
     /// hme.'s engine, created on the first click of the house. When hme.exe already owns it, hme.exe shows its own
     /// panel and this returns null; if that hme.exe is gone, shft. takes the engine over.
     /// </summary>
-    public async Task<Hme.EngineHost?> HmeHost()
+    public Task<Hme.EngineHost?> HmeHost()
     {
-        if (_hme != null) return _hme;
+        if (_hme != null) return Task.FromResult<Hme.EngineHost?>(_hme);
+        // A second click while the first is still starting waits for the same start, never a second engine.
+        return _hmeStarting ??= StartHme();
+    }
+
+    async Task<Hme.EngineHost?> StartHme()
+    {
+        try { return await StartHmeCore(); }
+        finally { _hmeStarting = null; }
+    }
+
+    async Task<Hme.EngineHost?> StartHmeCore()
+    {
         var cfg = Hme.HmeConfig.Load(Hme.HmeConfig.DefaultFolder);
         if (await Hme.LocalApi.IsOldControleCasa(cfg.Port))
         {

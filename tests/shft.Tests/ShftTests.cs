@@ -629,3 +629,24 @@ public class LiquidGlassTests
     [Fact]
     public void Dock_glass_is_on_by_default() => Assert.True(new AppSettings().LiquidGlass);
 }
+
+public class SettingsReadTests
+{
+    [Fact]
+    public async Task A_briefly_locked_file_is_read_after_the_lock()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "shft-lock-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(path, "{\"x\":1}");
+        try
+        {
+            var lockStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+            var release = Task.Delay(250).ContinueWith(_ => lockStream.Dispose());
+            Assert.Equal("{\"x\":1}", SettingsStore.ReadLocked(path));
+            await release;
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+}

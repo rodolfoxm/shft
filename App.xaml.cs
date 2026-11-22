@@ -132,11 +132,19 @@ public partial class App : Application
         }
         else if (msg == WM_SETTINGCHANGE)
         {
-            Dispatcher.BeginInvoke(() => _bars?.Apply(), DispatcherPriority.Background);
+            // Windows sends these in bursts (and after our own windows move): rebuild the bars once, after the burst.
+            _settingChange ??= new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) =>
+            {
+                _settingChange!.Stop();
+                _bars?.Apply();
+            }, Dispatcher);
+            _settingChange.Stop();
+            _settingChange.Start();
         }
         return IntPtr.Zero;
     }
 
+    DispatcherTimer? _settingChange;
     string? _appliedAppsKey, _appliedControlKey;
 
     TaskbarMode _appliedTaskbar = TaskbarMode.Keep;

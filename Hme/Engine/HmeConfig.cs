@@ -45,6 +45,9 @@ public sealed class HmeConfig
 
     public string Folder { get; }
     public JsonObject Root { get; }
+
+    /// <summary>The file exists but could not be read (locked by a sync or backup tool): saving would wipe it.</summary>
+    public bool ReadFailed { get; private set; }
     public string? SecretError { get; private set; }
     string FilePath => Path.Combine(Folder, "config.json");
 
@@ -52,13 +55,26 @@ public sealed class HmeConfig
     {
         JsonObject saved = new();
         var path = Path.Combine(folder, "config.json");
-        try
+        bool readFailed = false;
+        for (int attempt = 0; attempt < 3; attempt++)
         {
-            if (File.Exists(path) && JsonNode.Parse(File.ReadAllText(path)) is JsonObject o) saved = o;
-        }
-        catch (Exception ex) when (ex is JsonException or IOException)
-        {
-            Log.Write("hme: config not read, using defaults: " + ex.Message);
+            try
+            {
+                if (File.Exists(path) && JsonNode.Parse(File.ReadAllText(path)) is JsonObject o) saved = o;
+                readFailed = false;
+                break;
+            }
+            catch (JsonException ex)
+            {
+                Log.Write("hme: config is not valid JSON, using defaults: " + ex.Message);
+                break;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                readFailed = true;
+                Log.Write("hme: config not readable right now: " + ex.Message);
+                if (attempt < 2) Thread.Sleep(150);
+            }
         }
 
         bool hadRooms = saved.ContainsKey("rooms");
@@ -66,7 +82,7 @@ public sealed class HmeConfig
         if (!hadRooms && Bool(root["configured"])) // who used v10 keeps that version's list
             root["rooms"] = new JsonArray("Sala", "Cozinha", "Quarto", "Suíte", "Estúdio");
 
-        var cfg = new HmeConfig(folder, root);
+        var cfg = new HmeConfig(folder, root) { ReadFailed = readFailed };
         bool legacy = false;
         var raw = Str(root["access_secret"]);
         if (raw.Length > 0)
@@ -83,7 +99,7 @@ public sealed class HmeConfig
         }
         var pw = Str(cfg.Positivo["password"]);
         legacy |= pw.Length > 0 && !Secrets.IsProtected(pw);
-        if (legacy)
+        if (legacy && !readFailed)
         {
             try { cfg.Save(); }
             catch (Exception ex) when (ex is HmeSecretException or IOException or UnauthorizedAccessException)
@@ -112,6 +128,8 @@ public sealed class HmeConfig
     /// <summary>Atomic write; secrets always protected. If protecting fails, nothing is written.</summary>
     public void Save()
     {
+        if (ReadFailed)
+            throw new IOException("A configuração do hme. não pôde ser lida quando ele abriu (outro programa a estava usando). Feche e abra o hme. antes de salvar, para não perder os ajustes.");
         var output = (JsonObject)Root.DeepClone();
         output["access_secret"] = Secrets.Protect(_secret);
         var pos = (JsonObject)output["positivo"]!;

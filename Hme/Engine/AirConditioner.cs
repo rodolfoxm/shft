@@ -133,9 +133,10 @@ public sealed class AirConditioner
 
     static string Str(JsonNode? n, string fallback) => n is JsonValue v ? v.ToJsonString().Trim('"') : fallback;
 
-    public async Task<AcState> Set(AcChange c)
+    /// <summary>Applies a change; <paramref name="current"/> spares a status read when the caller already knows it.</summary>
+    public async Task<AcState> Set(AcChange c, AcState? current = null)
     {
-        var cur = await State();
+        var cur = current ?? await State();
         bool power = c.Power ?? cur.Power, turbo = c.Turbo ?? cur.Turbo;
         string mode = c.Mode != null && Modes.Contains(c.Mode) ? c.Mode : cur.Mode;
         string fan = c.Fan != null && Fans.Contains(c.Fan) ? c.Fan : cur.Fan;

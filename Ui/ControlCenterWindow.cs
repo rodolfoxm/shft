@@ -322,21 +322,34 @@ public sealed class ControlCenterWindow : FlyoutWindow
                 var s = screen;
                 int? pending = null;
                 bool running = false;
+                var gate = new object();
                 slider.ValueChanged += v =>
                 {
-                    pending = s.Min + (int)Math.Round(v * (s.Max - s.Min));
-                    s.Brightness = pending;
-                    if (running) return;
-                    running = true;
+                    int value = s.Min + (int)Math.Round(v * (s.Max - s.Min));
+                    s.Brightness = value;
+                    lock (gate)
+                    {
+                        pending = value;
+                        if (running) return;
+                        running = true;
+                    }
                     // Only the latest value reaches the monitor: it can't keep up with a dragging hand.
                     _ = Task.Run(() =>
                     {
-                        while (pending is int value)
+                        while (true)
                         {
-                            pending = null;
-                            DisplayService.SetBrightness(s, value);
+                            int next;
+                            lock (gate)
+                            {
+                                if (pending is not int p)
+                                {
+                                    running = false;
+                                    return;
+                                }
+                                (next, pending) = (p, null);
+                            }
+                            DisplayService.SetBrightness(s, next);
                         }
-                        running = false;
                     });
                 };
                 host.Children.Add(slider);

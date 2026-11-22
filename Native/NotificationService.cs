@@ -75,7 +75,9 @@ public sealed class NotificationService
                 catch (Exception) { app = "App"; } // some Win32 senders have no display info
                 list.Add(new NotificationEntry(n.Id, app, text.FirstOrDefault() ?? "", string.Join("\n", text.Skip(1)), n.CreationTime));
             }
-            Items = list.OrderByDescending(n => n.When).ToList();
+            var sorted = list.OrderByDescending(n => n.When).ToList();
+            if (sorted.SequenceEqual(Items)) return; // polling every 8 s: most passes find nothing new
+            Items = sorted;
             Changed?.Invoke();
         }
         catch (Exception ex)

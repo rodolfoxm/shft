@@ -56,6 +56,18 @@ public sealed class TrayHost : IDisposable
     volatile bool _aside;
 
     public event Action? Changed;
+    int _changePending;
+
+    /// <summary>Apps that update their icon every second (meters, chat, recorders) cause one refresh per burst, not one each.</summary>
+    void RaiseChanged()
+    {
+        if (Interlocked.Exchange(ref _changePending, 1) == 1) return;
+        _ui.BeginInvoke(() =>
+        {
+            Interlocked.Exchange(ref _changePending, 0);
+            Changed?.Invoke();
+        }, DispatcherPriority.Background);
+    }
 
     public IReadOnlyList<TrayEntry> Items
     {
@@ -167,7 +179,7 @@ public sealed class TrayHost : IDisposable
             // Explorer restarted: its new window took the top spot and every icon is coming again.
             lock (_gate) _items.Clear();
             StayFirst();
-            _ui.BeginInvoke(() => Changed?.Invoke());
+            RaiseChanged();
             return IntPtr.Zero;
         }
         return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -234,7 +246,7 @@ public sealed class TrayHost : IDisposable
                     return;
             }
         }
-        _ui.BeginInvoke(() => Changed?.Invoke());
+        RaiseChanged();
     }
 
     static ImageSource? Copy(IntPtr icon)

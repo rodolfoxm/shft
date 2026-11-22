@@ -124,6 +124,10 @@ public sealed class WindowTracker : IDisposable
             return true;
         }, IntPtr.Zero);
 
+        // A process id that went away may come back as another app: forget paths not seen in this pass.
+        foreach (var gone in _pathCache.Keys.Where(k => !_seenPids.Contains(k)).ToList()) _pathCache.Remove(gone);
+        _seenPids.Clear();
+
         bool same = list.Count == Windows.Count &&
                     list.Zip(Windows).All(p => p.First.Handle == p.Second.Handle && p.First.Title == p.Second.Title);
         Windows = list;
@@ -148,8 +152,11 @@ public sealed class WindowTracker : IDisposable
         return cls is not ("Windows.UI.Core.CoreWindow" or "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd");
     }
 
+    readonly HashSet<uint> _seenPids = new();
+
     string? CachedPath(uint pid)
     {
+        _seenPids.Add(pid);
         if (!_pathCache.TryGetValue(pid, out var path))
         {
             path = Win32.ProcessPath(pid);
@@ -172,15 +179,16 @@ public sealed class WindowTracker : IDisposable
     }
 
     /// <summary>The parent process's exe, when the parent is still running and is not a shell or service host.</summary>
-    static string? ParentPath(uint pid)
+    static string? ParentPath(uint pid, int depth = 0)
     {
+        if (depth > 8) return null; // a reused process id can point a helper back at its own child
         uint parent = ParentPid(pid);
         if (parent == 0) return null;
         var path = Win32.ProcessPath(parent);
         if (path == null) return null;
         var name = Path.GetFileName(path).ToLowerInvariant();
         if (name is "explorer.exe" or "svchost.exe" or "services.exe" or "sihost.exe" or "runtimebroker.exe") return null;
-        return IsHelper(path) ? ParentPath(parent) ?? path : path;
+        return IsHelper(path) ? ParentPath(parent, depth + 1) ?? path : path;
     }
 
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]

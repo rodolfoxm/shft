@@ -64,6 +64,7 @@ public sealed class DockView : Panel
 
     public DockView()
     {
+        MouseMove += (_, _) => Wake(); // the loop rests while the pointer rests; moving wakes it without waiting for the poll
         _bar = new GlassBar { IsHitTestVisible = true };
         _labelText = new TextBlock { FontSize = 12.5, FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI") };
         _label = new Border
@@ -89,7 +90,7 @@ public sealed class DockView : Panel
         // With glass on Windows 11 the blur's corners are rounded by Windows at a fixed radius; match it.
         _corner = s.Glass && BackdropWindow.RoundedBySystem ? BackdropWindow.SystemCornerRadius : s.CornerRadius;
 
-        _bar.SetLook(theme.BarFill, theme.BarBorder, s.LiquidGlass, theme.IsDark);
+        _bar.SetLook(theme.BarFill, theme.BarBorder, s.LiquidGlass && !SystemParameters.HighContrast, theme.IsDark);
         _label.Background = Theme.Brush(theme.LabelBack);
         _labelText.Foreground = Theme.Brush(theme.LabelText);
         foreach (var t in _tiles) t.SetLook(Edge, theme.Indicator);
@@ -126,6 +127,11 @@ public sealed class DockView : Panel
     }
 
     /// <summary>Starts the frame loop; it stops by itself once everything has settled.</summary>
+    Point _lastCursor;
+
+    /// <summary>True while the pointer magnifies the Dock; the window keeps waking the loop so leaving is noticed.</summary>
+    public bool IsHovering => _hovering;
+
     public void Wake()
     {
         if (_animating) return;
@@ -143,7 +149,10 @@ public sealed class DockView : Panel
         bool wasHovering = _hovering;
         UpdateHover();
 
-        bool busy = _hovering || _dragging;
+        // A resting pointer needs no frames: the window's poll and MouseMove wake the loop again.
+        bool moved = TryCursor(out var cursor) && cursor != _lastCursor;
+        _lastCursor = cursor;
+        bool busy = (_hovering && (moved || !wasHovering)) || _dragging;
 
         // The magnification wave glides after the pointer instead of jumping with it.
         if (_anchorTarget is double target)

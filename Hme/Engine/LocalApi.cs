@@ -45,9 +45,15 @@ public static class LocalApi
         return listener;
     }
 
+    /// <summary>A refused local connection takes about 2 s on Windows; the listener table answers at once.</summary>
+    static bool Listening(int port) =>
+        System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
+            .Any(e => e.Port == port && (IPAddress.IsLoopback(e.Address) || e.Address.Equals(IPAddress.Any) || e.Address.Equals(IPAddress.IPv6Any)));
+
     /// <summary>Asks whoever owns the engine to show its panel. False when nobody answers within a second.</summary>
     public static async Task<bool> AskShow(int port)
     {
+        if (!Listening(port)) return false;
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
         using var msg = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{port}/api/show");
         msg.Headers.Add(Header, "1");
@@ -65,6 +71,7 @@ public static class LocalApi
     /// <summary>Controle Casa (Python) answers /api/version with a number; hme. answers with text.</summary>
     public static async Task<bool> IsOldControleCasa(int port)
     {
+        if (!Listening(port)) return false;
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
         try
         {
