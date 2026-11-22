@@ -6,6 +6,7 @@ using System.Windows.Media.Effects;
 using Shft.Core;
 using Shft.Dock;
 using Shft.Native;
+using Shft.Native.Glass;
 
 namespace Shft.Ui;
 
@@ -32,6 +33,8 @@ public class FlyoutWindow : Window
     bool _closing;
     Point _origin = new(0.5, 0);
     Color? _paper;
+    GlassSurface? _real; // live refraction (experimental), else the photo below
+    PanelGlassSync? _sync;
 
     public FlyoutWindow()
     {
@@ -89,6 +92,7 @@ public class FlyoutWindow : Window
             }
             _glass.Background = null;
             _lens.Background = null;
+            DropRealGlass();
             MemoryTrim.Soon(Dispatcher);
         };
     }
@@ -117,6 +121,7 @@ public class FlyoutWindow : Window
         _closing = true;
         AllowSetForegroundWindow(-1); // ASFW_ANY, while this panel still holds the foreground
         Hide();
+        DropRealGlass();
         action();
         Dispatcher.BeginInvoke(Close);
     }
@@ -129,6 +134,7 @@ public class FlyoutWindow : Window
         if (_closing) return;
         _closing = true;
         Motion.Close(Frame, () => Dispatcher.BeginInvoke(Close));
+        _sync?.Run();
     }
 
     /// <summary>Opens beside <paramref name="anchor"/>; <paramref name="edge"/> is the screen edge it hangs from (the Dock's by default).</summary>
@@ -190,6 +196,7 @@ public class FlyoutWindow : Window
         Frame.Opacity = 0;
         Opacity = 1;
         Motion.Open(Frame, _origin, fromY);
+        _sync?.Run();
         Activate();
     }
 
@@ -204,8 +211,50 @@ public class FlyoutWindow : Window
             return;
         }
         bool rim = s.PanelRim && !SystemParameters.HighContrast; // high contrast: plain edges, no glass effects
-        _surface.SetLook(theme.PanelTint, theme.TileRim, rim, theme.IsDark);
         var hwnd = new WindowInteropHelper(this).Handle;
+        if (rim && GlassRuntime.Wanted(s) && TryRealGlass(hwnd, s, theme)) return;
+        DressPhoto(hwnd, s, theme, rim);
+    }
+
+    /// <summary>Live refraction behind the card; false (photo fallback) when it cannot start.</summary>
+    bool TryRealGlass(IntPtr hwnd, AppSettings s, Theme theme)
+    {
+        if (GlassRuntime.Device is not { } dev || !Win32.GetWindowRect(hwnd, out var w)) return false;
+        var real = GlassSurface.TryCreate(hwnd, dev, out var why);
+        if (real == null) { Log.Write($"panel glass: {why}"); return false; }
+        var dpi = VisualTreeHelper.GetDpi(this);
+        int mx = (int)(Frame.Margin.Left * dpi.DpiScaleX), my = (int)(Frame.Margin.Top * dpi.DpiScaleY);
+        real.Style = s.GlassStyle;
+        real.Dark = theme.IsDark;
+        real.Blur = GlassDevice.BlurFor(s.GlassStyle, s.PanelBlur);
+        real.SetShape(new Int32Rect(w.Left + mx, w.Top + my, w.Width - 2 * mx, w.Height - 2 * my), Radius * dpi.DpiScaleX);
+        real.HealthChanged += h => Dispatcher.BeginInvoke(() =>
+        {
+            if (h == GlassHealth.Live || _real != real) return;
+            DropRealGlass();
+            DressPhoto(hwnd, SettingsStore.Current, Theme.Resolve(SettingsStore.Current), true);
+        });
+        _real = real;
+        _sync = new PanelGlassSync(Frame, real, _origin, dpi.DpiScaleX, dpi.DpiScaleY);
+        _sync.Hidden(); // the card starts at opacity 0 too
+        // a light tint over live glass: the shader already frosts it
+        _surface.SetLook(Color.FromArgb(0x30, theme.PanelTint.R, theme.PanelTint.G, theme.PanelTint.B), theme.TileRim, true, theme.IsDark);
+        real.Show();
+        GlassSurface.ExclusionsChanged(); // other open magnifiers must now leave this panel out too
+        return true;
+    }
+
+    void DropRealGlass()
+    {
+        _sync?.Dispose();
+        _sync = null;
+        _real?.Dispose();
+        _real = null;
+    }
+
+    void DressPhoto(IntPtr hwnd, AppSettings s, Theme theme, bool rim)
+    {
+        _surface.SetLook(theme.PanelTint, theme.TileRim, rim, theme.IsDark);
         if (Win32.GetWindowRect(hwnd, out var w))
         {
             var dpi = VisualTreeHelper.GetDpi(this);

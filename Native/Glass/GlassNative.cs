@@ -27,6 +27,29 @@ internal static class GlassNative
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr h, int cmd);
+    public delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc proc, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr h, System.Text.StringBuilder s, int n);
+
+    /// <summary>Visible top-level windows of this process, except the glass layers themselves. Any thread.</summary>
+    public static IReadOnlyList<IntPtr> OwnWindows()
+    {
+        var list = new List<IntPtr>();
+        uint me = (uint)Environment.ProcessId;
+        var cls = new System.Text.StringBuilder(32);
+        EnumWindows((h, _) =>
+        {
+            if (IsWindowVisible(h) && Win32.GetWindowThreadProcessId(h, out uint pid) != 0 && pid == me)
+            {
+                cls.Clear();
+                GetClassName(h, cls, 32);
+                if (cls.ToString() != LayerClass) list.Add(h);
+            }
+            return true;
+        }, IntPtr.Zero);
+        return list;
+    }
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern bool SetLayeredWindowAttributes(IntPtr h, uint key, byte alpha, uint flags);
     [DllImport("user32.dll")] public static extern bool InvalidateRect(IntPtr h, IntPtr r, bool erase);

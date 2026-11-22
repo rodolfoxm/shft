@@ -23,7 +23,7 @@ public sealed class GlassSurface : IGlassSource, IDisposable
     const int Margin = 48;
 
     /// <summary>Every shft. window the magnifier must leave out (Dock, bars, open panels). Set once by the app.</summary>
-    public static Func<IReadOnlyList<IntPtr>> OurWindows { get; set; } = () => Array.Empty<IntPtr>();
+    public static Func<IReadOnlyList<IntPtr>> OurWindows { get; set; } = GlassNative.OwnWindows;
 
     static readonly List<GlassSurface> Live = new();
     static readonly Dictionary<IntPtr, (ChangeSignal? Signal, int Count)> Signals = new();

@@ -665,3 +665,13 @@ public class RealGlassSettingsTests
         Assert.Equal(GlassStyle.Regular, s.GlassStyle);
     }
 }
+
+public class RealGlassPanelTests
+{
+    [Fact]
+    public void Reduced_motion_glass_follows_opacity_only()
+    {
+        Assert.Equal((1d, 1d, 0d, 0.4), Shft.Native.Glass.GlassRuntime.Follow(0.95, 0.95, -8, 0.4, reduced: true));
+        Assert.Equal((0.95, 0.95, -8d, 0.4), Shft.Native.Glass.GlassRuntime.Follow(0.95, 0.95, -8, 0.4, reduced: false));
+    }
+}

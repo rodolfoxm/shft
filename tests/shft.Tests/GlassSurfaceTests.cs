@@ -57,14 +57,14 @@ public class GlassSurfaceTests
             Dispatcher.Run();
         });
         thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
         try
         {
-            Assert.True(ready.Wait(5000));
             var deadline = DateTime.UtcNow.AddSeconds(15);
             while (FindWindow(null, "shft-glass-test-bg") == IntPtr.Zero && DateTime.UtcNow < deadline) Thread.Sleep(100);
             Assert.NotEqual(IntPtr.Zero, FindWindow(null, "shft-glass-test-bg"));
-            Thread.Sleep(300); // first paint
+            Thread.Sleep(500); // first paint and activation of the background, then our owner on top of it
+            thread.Start();
+            Assert.True(ready.Wait(5000));
 
             // like the app: the surface is made and driven from the owner's UI thread
             string? why = null;
