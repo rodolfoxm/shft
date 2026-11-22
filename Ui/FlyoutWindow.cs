@@ -109,6 +109,22 @@ public class FlyoutWindow : Window
     /// <summary>No card behind the content (no glass, no shadow): the content's own groups are the glass.</summary>
     protected bool Bare { get; set; }
 
+    /// <summary>"Fundo dos painéis" off: panels drop their card and their groups float as glass, like macOS.</summary>
+    public static bool BareWanted => !SettingsStore.Current.ControlCenterBackground;
+
+    /// <summary>Background of a group: a tile on the card, or the panel's own tint when it floats alone.</summary>
+    public static string GroupBrushKey => BareWanted ? "PanelTintBrush" : "TileBrush";
+
+    /// <summary>Wraps loose content (headers, footers, lists) in a floating glass group when the panel has no card.</summary>
+    public static UIElement Floating(UIElement child, double radius = 16, Thickness? padding = null)
+    {
+        if (!BareWanted) return child;
+        var b = new Border { CornerRadius = new CornerRadius(radius), Padding = padding ?? new Thickness(10, 6, 6, 6), BorderThickness = new Thickness(1), Child = child };
+        b.SetResourceReference(Border.BackgroundProperty, "PanelTintBrush");
+        b.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
+        return b;
+    }
+
     /// <summary>An opaque card instead of glass, for the sticky note.</summary>
     protected Color Paper { set => _paper = value; }
 

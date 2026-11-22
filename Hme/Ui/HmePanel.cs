@@ -43,6 +43,7 @@ public sealed class HmePanel : FlyoutWindow
     {
         _host = host;
         Radius = 26;
+        Bare = BareWanted;
         Inner = new Thickness(12);
         _scroll = new ScrollViewer { Content = _root, MaxHeight = 640, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         Body = _scroll;
@@ -142,7 +143,7 @@ public sealed class HmePanel : FlyoutWindow
     static Border Card(UIElement child, double radius = 18, Thickness? padding = null)
     {
         var b = new Border { CornerRadius = new CornerRadius(radius), Padding = padding ?? new Thickness(12), BorderThickness = new Thickness(1), Child = child, Margin = new Thickness(0, 10, 0, 0) };
-        b.SetResourceReference(Border.BackgroundProperty, "TileBrush");
+        b.SetResourceReference(Border.BackgroundProperty, GroupBrushKey);
         b.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush");
         return b;
     }
@@ -163,10 +164,10 @@ public sealed class HmePanel : FlyoutWindow
     {
         double scroll = _scroll.VerticalOffset;
         _root.Children.Clear();
-        _root.Children.Add(Header());
+        _root.Children.Add(Floating(Header()));
         if (_host.Home == null)
         {
-            _root.Children.Add(Setup());
+            _root.Children.Add(Floating(Setup(), 18, new Thickness(12)));
             return;
         }
         if (_state == null)
@@ -182,7 +183,7 @@ public sealed class HmePanel : FlyoutWindow
             _root.Children.Add(t);
         }
         if ((_acShown ?? _state.Ac) is { Available: true } ac) _root.Children.Add(AcCard(ac));
-        _root.Children.Add(RoomsBar());
+        _root.Children.Add(Floating(RoomsBar(), 18, new Thickness(6)));
         _root.Children.Add(DeviceList());
         _scroll.ScrollToVerticalOffset(scroll);
     }

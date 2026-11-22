@@ -18,6 +18,7 @@ public sealed class NotificationsPanel : FlyoutWindow
     public NotificationsPanel()
     {
         Inner = new Thickness(14);
+        Bare = BareWanted;
         var header = new DockPanel { Margin = new Thickness(2, 0, 0, 8) };
         var actions = new StackPanel { Orientation = Orientation.Horizontal };
         var quiet = FlatButton(Glyph.Text(Glyph.Moon, 13), () => { SafeClose(); DockController.Open("ms-settings:quietmomentshome"); }, 7);
@@ -30,9 +31,12 @@ public sealed class NotificationsPanel : FlyoutWindow
         header.Children.Add(new TextBlock { Text = "Notificações", FontSize = 15, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
 
         var root = new DockPanel { Width = 340 };
-        DockPanel.SetDock(header, System.Windows.Controls.Dock.Top);
-        root.Children.Add(header);
-        var more = FlatButton(new TextBlock { Text = "Mais configurações de notificação", FontSize = 12 }, () => { SafeClose(); DockController.Open("ms-settings:notifications"); });
+        var top = Floating(header);
+        if (top != header) { header.Margin = new Thickness(2, 0, 0, 0); ((Border)top).Margin = new Thickness(0, 0, 0, 8); }
+        DockPanel.SetDock(top, System.Windows.Controls.Dock.Top);
+        root.Children.Add(top);
+        var more = Floating(FlatButton(new TextBlock { Text = "Mais configurações de notificação", FontSize = 12 }, () => { SafeClose(); DockController.Open("ms-settings:notifications"); }));
+        if (more is Border pill) pill.Margin = new Thickness(0, 2, 0, 0);
         DockPanel.SetDock(more, System.Windows.Controls.Dock.Bottom);
         root.Children.Add(more);
         root.Children.Add(new ScrollViewer { Content = _list, MaxHeight = 420, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
@@ -72,8 +76,9 @@ public sealed class NotificationsPanel : FlyoutWindow
             var row = new DockPanel();
             row.Children.Add(close);
             row.Children.Add(text);
-            var card = new Border { CornerRadius = new CornerRadius(12), Padding = new Thickness(10, 8, 6, 8), Margin = new Thickness(0, 0, 0, 6), Child = row };
-            card.SetResourceReference(Border.BackgroundProperty, "TileBrush");
+            var card = new Border { CornerRadius = new CornerRadius(BareWanted ? 16 : 12), Padding = new Thickness(10, 8, 6, 8), Margin = new Thickness(0, 0, 0, 6), Child = row };
+            card.SetResourceReference(Border.BackgroundProperty, GroupBrushKey);
+            if (BareWanted) { card.BorderThickness = new Thickness(1); card.SetResourceReference(Border.BorderBrushProperty, "TileRimBrush"); }
             card.Cursor = Cursors.Hand;
             var id = n.Id;
             card.MouseLeftButtonUp += (_, e) =>
@@ -96,7 +101,8 @@ public sealed class TrayPanel : FlyoutWindow
     public TrayPanel()
     {
         Inner = new Thickness(8);
-        Body = new ScrollViewer { Content = _list, MaxHeight = 560, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        Bare = BareWanted;
+        Body = Floating(new ScrollViewer { Content = _list, MaxHeight = 560, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, 18, new Thickness(6));
         TrayHost.Instance.Changed += Fill;
         Closed += (_, _) => TrayHost.Instance.Changed -= Fill;
         Fill();

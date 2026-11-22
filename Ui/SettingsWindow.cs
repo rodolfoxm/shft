@@ -216,7 +216,7 @@ public sealed class SettingsWindow : Window
             (GlassStyle.Regular, "Regular"), (GlassStyle.Clear, "Claro"),
         }, S.GlassStyle, v => S.GlassStyle = v), "\uE81E");
         Row(glass, "Degradê no vidro", "Brilho em cima e sombra embaixo no Dock, nos painéis e nos botões. Desligado fica liso, como no macOS.", Toggle(S.GlassGradient, v => S.GlassGradient = v), "\uE81E");
-        Row(glass, "Fundo da Central de Controle", "Desligado, cada grupo flutua como um vidro próprio, como no macOS.", Toggle(S.ControlCenterBackground, v => S.ControlCenterBackground = v), "\uE81E");
+        Row(glass, "Fundo dos painéis", "Central de Controle, notificações, hme. e apps em segundo plano. Desligado, cada grupo flutua como um vidro próprio, como no macOS.", Toggle(S.ControlCenterBackground, v => S.ControlCenterBackground = v), "\uE81E");
         Row(glass, "Tom do vidro", "Vidro real: mais claro deixa o fundo aparecer; mais tingido dá mais contraste ao texto.", Choice(new[]
         {
             (GlassTint.Clearer, "Mais claro"), (GlassTint.Default, "Padrão"), (GlassTint.Tinted, "Mais tingido"),
