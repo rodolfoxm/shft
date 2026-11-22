@@ -34,8 +34,8 @@
     <!-- WPF and WinForms both define Point, Application, MessageBox...; keep WPF's names unqualified. -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
-    <Compile Remove="tests/**;standalone/**" />
-    <Page Remove="tests/**;standalone/**" />
+    <Compile Remove="tests/**;standalone/**;tools/**" />
+    <Page Remove="tests/**;standalone/**;tools/**" />
   </ItemGroup>
 
   <ItemGroup>

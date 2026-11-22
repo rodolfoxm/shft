@@ -31,7 +31,7 @@
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
-    <Compile Include="..\**\*.cs" Exclude="..\tests\**;..\standalone\**;..\obj\**;..\bin\**;..\artifacts\**;..\graphify-out\**;..\.superpowers\**" />
+    <Compile Include="..\**\*.cs" Exclude="..\tests\**;..\standalone\**;..\tools\**;..\obj\**;..\bin\**;..\artifacts\**;..\graphify-out\**;..\.superpowers\**" />
     <Page Include="..\App.xaml" Link="App.xaml" />
     <Page Include="..\Ui\*.xaml" LinkBase="Ui" />
     <Resource Include="..\Assets\hme.ico" Link="Assets\hme.ico" />
