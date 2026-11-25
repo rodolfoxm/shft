@@ -118,8 +118,12 @@ public static class Monitors
         if (pid == Environment.ProcessId || !Win32.GetWindowRect(window, out var r)) return false;
         var m = ForWindow(window);
         if (m.Handle != monitor.Handle) return false;
-        return r.Left <= m.Bounds.Left && r.Top <= m.Bounds.Top && r.Right >= m.Bounds.Right && r.Bottom >= m.Bounds.Bottom;
+        return Covers(r, m.Bounds);
     }
+
+    /// <summary>The window covers the whole monitor (equal or larger, at any resolution or aspect).</summary>
+    internal static bool Covers(RECT window, RECT bounds) =>
+        window.Left <= bounds.Left && window.Top <= bounds.Top && window.Right >= bounds.Right && window.Bottom >= bounds.Bottom;
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     static extern IntPtr MonitorFromPoint(POINT pt, uint flags);

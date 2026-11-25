@@ -739,3 +739,70 @@ public class TrayClickTests
     [Fact] public void Sibling_folder_with_the_same_prefix_does_not_count() =>
         Assert.False(TrayHost.Answered(false, @"C:\Program Files (x86)\SteamTools\x.exe", Steam));
 }
+
+/// <summary>
+/// The game fixes for every resolution people play at: 4:3, 5:4, 16:10, 16:9, 21:9 and 4K, native or stretched
+/// (the game's window bigger than its display mode, as CS2 does), with the top bar at 100/150/200% scale.
+/// </summary>
+public class GameResolutionTests
+{
+    const long Popup = unchecked((long)0x80000000);
+
+    public static IEnumerable<object[]> Modes()
+    {
+        var modes = new (int W, int H)[]
+        {
+            (640, 480), (800, 600), (1024, 768), (1280, 960), (1440, 1080), // 4:3
+            (1280, 1024), // 5:4
+            (1280, 800), (1440, 900), (1680, 1050), (1920, 1200), (2560, 1600), // 16:10
+            (1280, 720), (1600, 900), (1920, 1080), (2560, 1440), (3840, 2160), // 16:9
+            (2560, 1080), (3440, 1440), (5120, 2160), // 21:9
+        };
+        foreach (var (w, h) in modes)
+            foreach (var scale in new[] { 1.0, 1.5, 2.0 })
+                yield return new object[] { w, h, scale };
+    }
+
+    static int Strip(double scale) => (int)Math.Ceiling(32 * scale);
+
+    [Theory, MemberData(nameof(Modes))]
+    public void Game_pushed_by_the_top_bar_is_put_back(int w, int h, double scale)
+    {
+        var screen = new RECT(0, 0, w, h);
+        var work = new RECT(0, Strip(scale), w, h);
+        // native: the window is the mode's size
+        Assert.True(Monitors.Displaced(new RECT(0, Strip(scale), w, h + Strip(scale)), screen, work, Popup));
+        // stretched: the window kept the desktop's 1920x1080 (or bigger) while the mode is smaller
+        int bw = Math.Max(w, 1920), bh = Math.Max(h, 1080);
+        Assert.True(Monitors.Displaced(new RECT(0, Strip(scale), bw, bh + Strip(scale)), screen, work, Popup));
+        // already in place, or a window smaller than the screen: left alone
+        Assert.False(Monitors.Displaced(new RECT(0, 0, w, h), screen, work, Popup));
+        Assert.False(Monitors.Displaced(new RECT(0, Strip(scale), w - 1, h), screen, work, Popup));
+    }
+
+    [Theory, MemberData(nameof(Modes))]
+    public void Game_pushed_by_a_left_dock_is_put_back(int w, int h, double scale)
+    {
+        int strip = (int)Math.Ceiling(80 * scale);
+        var screen = new RECT(0, 0, w, h);
+        Assert.True(Monitors.Displaced(new RECT(strip, 0, w + strip, h), screen, new RECT(strip, 0, w, h), Popup));
+    }
+
+    [Theory, MemberData(nameof(Modes))]
+    public void Full_screen_game_is_seen_and_no_strip_is_reserved_over_it(int w, int h, double scale)
+    {
+        var screen = new RECT(0, 0, w, h);
+        Assert.True(Monitors.Covers(new RECT(0, 0, w, h), screen)); // native
+        Assert.True(Monitors.Covers(new RECT(0, 0, Math.Max(w, 1920), Math.Max(h, 1080)), screen)); // stretched
+        Assert.False(Monitors.Covers(new RECT(0, Strip(scale), w, h), screen)); // a maximized window under the bar
+        Assert.True(Monitors.Overlaps(screen, new RECT(0, 0, w, Strip(scale)))); // that monitor's top bar strip
+    }
+
+    [Fact]
+    public void Second_monitor_bar_is_not_affected_by_a_game_on_the_main_one()
+    {
+        var main = new RECT(0, 0, 1280, 960);
+        Assert.False(Monitors.Overlaps(main, new RECT(-1080, -394, 0, -362)));
+        Assert.False(Monitors.Overlaps(main, new RECT(1280, 0, 3840, 32))); // a monitor to the right
+    }
+}
