@@ -39,6 +39,16 @@ public sealed class AppBar : IDisposable
     /// <summary>Reserves <paramref name="thickness"/> physical pixels along <paramref name="edge"/> of the monitor.</summary>
     public RECT Reserve(DockEdge edge, RECT monitor, int thickness)
     {
+        if (Monitors.FullScreenOver(Strip(edge, monitor, thickness)))
+        {
+            // A full-screen app (a game) in front of this strip: reserving now makes Windows push it down by the strip.
+            // CS2 switches resolution when it comes back from Alt+Tab, the bars re-reserved and the game moved to
+            // (0,32) with the mouse off. Checked before registering: a register/release pair is itself a work-area
+            // change, and the bars answered each other's 27 times in a row. The strip comes back when the game leaves.
+            if (_registered) { Log.Write("app bar: full screen app in front, not reserving"); Release(); }
+            return Strip(edge, monitor, thickness);
+        }
+
         bool known = _registered;
         if (!_registered)
         {
@@ -57,16 +67,6 @@ public sealed class AppBar : IDisposable
             case DockEdge.Top: rc.Bottom = rc.Top + thickness; break;
             case DockEdge.Left: rc.Right = rc.Left + thickness; break;
             case DockEdge.Right: rc.Left = rc.Right - thickness; break;
-        }
-
-        // A full-screen app (a game) in front of this strip: reserving now makes Windows push it down by the strip.
-        // CS2 switches resolution when it comes back from Alt+Tab, the bars re-reserved and the game moved to (0,32)
-        // with the mouse off. The reservation comes back when the game leaves the front.
-        if (Monitors.FullScreenOver(rc))
-        {
-            if (_registered) Log.Write("app bar: full screen app in front, not reserving");
-            Release();
-            return rc;
         }
 
         var abd = Data();
@@ -88,6 +88,19 @@ public sealed class AppBar : IDisposable
         Win32.AppBarMessage(Win32.ABM_SETPOS, ref abd);
         Reserved = abd.rc;
         return abd.rc;
+    }
+
+    static RECT Strip(DockEdge edge, RECT monitor, int thickness)
+    {
+        var rc = monitor;
+        switch (edge)
+        {
+            case DockEdge.Bottom: rc.Top = rc.Bottom - thickness; break;
+            case DockEdge.Top: rc.Bottom = rc.Top + thickness; break;
+            case DockEdge.Left: rc.Right = rc.Left + thickness; break;
+            case DockEdge.Right: rc.Left = rc.Right - thickness; break;
+        }
+        return rc;
     }
 
     public void Release()
