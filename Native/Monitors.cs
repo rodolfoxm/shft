@@ -70,6 +70,33 @@ public static class Monitors
         return $"{System.IO.Path.GetFileName(Win32.ProcessPath(pid) ?? "?")} {Win32.ClassName(window)} {r}";
     }
 
+    /// <summary>
+    /// A full-screen window that Windows put back at the work area's corner instead of the screen's: a game restored
+    /// after Alt+Tab is placed in work-area coordinates, so a top or left bar's strip shifts it (CS2 came back at
+    /// (0,32) with the mouse off). Only borderless windows exactly the monitor's size, shifted by exactly the strip.
+    /// </summary>
+    internal static bool Displaced(RECT window, RECT bounds, RECT work, long style)
+    {
+        const long WS_CAPTION = 0x00C00000;
+        if ((style & WS_CAPTION) == WS_CAPTION) return false;
+        if (window.Width != bounds.Width || window.Height != bounds.Height) return false;
+        int dx = window.Left - bounds.Left, dy = window.Top - bounds.Top;
+        return (dx != 0 || dy != 0) && dx == work.Left - bounds.Left && dy == work.Top - bounds.Top;
+    }
+
+    /// <summary>Puts a <see cref="Displaced"/> window back at the screen's corner. True when it moved one.</summary>
+    public static bool SnapDisplaced(IntPtr window)
+    {
+        if (window == IntPtr.Zero || !Win32.GetWindowRect(window, out var r)) return false;
+        Win32.GetWindowThreadProcessId(window, out uint pid);
+        if (pid == Environment.ProcessId) return false;
+        var m = ForWindow(window);
+        if (!Displaced(r, m.Bounds, m.WorkArea, Win32.GetStyle(window))) return false;
+        Win32.SetWindowPos(window, IntPtr.Zero, m.Bounds.Left, m.Bounds.Top, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE);
+        Log.Write("full screen window shifted by a bar's strip, put back: " + Describe(window));
+        return true;
+    }
+
     /// <summary>True when <paramref name="window"/> (normally the foreground one) covers all of the monitor.</summary>
     public static bool IsFullScreen(IntPtr window, MonitorInfo monitor)
     {

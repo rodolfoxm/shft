@@ -301,6 +301,7 @@ public sealed class DockWindow : Window
 
         if (_tick % 5 == 0)
         {
+            Monitors.SnapDisplaced(Win32.GetForegroundWindow());
             _game = Monitors.FullScreenWindow(_game, Win32.GetForegroundWindow(), _monitor);
             bool full = _game != IntPtr.Zero;
             if (full != _fullScreen)

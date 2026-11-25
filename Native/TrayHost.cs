@@ -285,7 +285,9 @@ public sealed class TrayHost : IDisposable
             return;
         }
         Win32.GetWindowThreadProcessId(e.Owner, out uint pid);
-        AllowSetForegroundWindow(pid);
+        // any process, as Explorer allows: Steam's chat window belongs to steamwebhelper.exe, not to steam.exe
+        AllowSetForegroundWindow(uint.MaxValue);
+        var frontBefore = Win32.GetForegroundWindow();
         Win32.GetCursorPos(out var c);
         void Send(uint m)
         {
@@ -300,12 +302,14 @@ public sealed class TrayHost : IDisposable
         // Version 3 already moved to these two messages; only the parameter layout changed in 4.
         if (e.Version >= 3) Send(right ? WM_CONTEXTMENU : NIN_SELECT);
         if (right) return;
-        // Many apps open their window only on a double click, as in Windows' own tray. If nothing of the app came
-        // to the front, finish the gesture as one.
+        // Many apps open their window only on a double click, as in Windows' own tray. Only when nothing at all came
+        // to the front (no window, no menu) finish the gesture as one: a double click after the app already opened
+        // swapped Steam's chat for its library and brought menus up next to windows.
         Task.Delay(600).ContinueWith(_ =>
         {
-            Win32.GetWindowThreadProcessId(Win32.GetForegroundWindow(), out uint front);
-            if (front == pid || !Win32.IsWindow(e.Owner)) return;
+            var now = Win32.GetForegroundWindow();
+            Win32.GetWindowThreadProcessId(now, out uint front);
+            if (front == pid || now != frontBefore || !Win32.IsWindow(e.Owner)) return;
             Log.Write($"tray: {e.Name} showed nothing, double click");
             Send(WM_LBUTTONDBLCLK);
             Send(WM_LBUTTONUP);

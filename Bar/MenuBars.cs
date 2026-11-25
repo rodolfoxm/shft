@@ -153,6 +153,7 @@ public sealed class MenuBars : IDisposable
     public void CheckFullScreen()
     {
         var fg = Win32.GetForegroundWindow();
+        Monitors.SnapDisplaced(fg);
         bool anyVisible = false;
         foreach (var b in _bars)
         {

@@ -685,3 +685,32 @@ public class RealGlassPanelTests
         Assert.Equal((0.95, 0.95, -8d, 0.4), Shft.Native.Glass.GlassRuntime.Follow(0.95, 0.95, -8, 0.4, reduced: false));
     }
 }
+
+public class DisplacedFullScreenTests
+{
+    static readonly RECT Screen = new(0, 0, 1280, 960), WorkUnderTopBar = new(0, 32, 1280, 960);
+    const long Popup = unchecked((long)0x80000000), Captioned = 0x00C00000;
+
+    [Fact]
+    public void Game_restored_under_the_top_bar_is_displaced() =>
+        Assert.True(Monitors.Displaced(new RECT(0, 32, 1280, 992), Screen, WorkUnderTopBar, Popup));
+
+    [Fact]
+    public void Game_in_place_is_not() =>
+        Assert.False(Monitors.Displaced(new RECT(0, 0, 1280, 960), Screen, WorkUnderTopBar, Popup));
+
+    [Fact]
+    public void Shift_other_than_the_strip_is_left_alone() =>
+        Assert.False(Monitors.Displaced(new RECT(0, 50, 1280, 1010), Screen, WorkUnderTopBar, Popup));
+
+    [Fact]
+    public void Smaller_or_captioned_windows_are_left_alone()
+    {
+        Assert.False(Monitors.Displaced(new RECT(0, 32, 1280, 960), Screen, WorkUnderTopBar, Popup));
+        Assert.False(Monitors.Displaced(new RECT(0, 32, 1280, 992), Screen, WorkUnderTopBar, Captioned));
+    }
+
+    [Fact]
+    public void Left_dock_strip_counts_too() =>
+        Assert.True(Monitors.Displaced(new RECT(80, 0, 1360, 960), Screen, new RECT(80, 0, 1280, 960), Popup));
+}
