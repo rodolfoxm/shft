@@ -306,13 +306,69 @@ public sealed class TrayHost : IDisposable
         // swapped Steam's chat for its library and brought menus up next to windows.
         Task.Delay(600).ContinueWith(_ =>
         {
-            Win32.GetWindowThreadProcessId(Win32.GetForegroundWindow(), out uint front);
-            if (Answered(front == pid, Win32.ProcessPath(front), e.ExePath) || !Win32.IsWindow(e.Owner)) return;
-            Log.Write($"tray: {e.Name} showed nothing, double click");
+            if (!Win32.IsWindow(e.Owner)) return;
+            var menu = MenuOf(pid);
+            var fg = Win32.GetForegroundWindow();
+            Win32.GetWindowThreadProcessId(fg, out uint front);
+            bool ours = Answered(front == pid, Win32.ProcessPath(front), e.ExePath);
+            // a menu drawn by the app itself (not a Windows menu): small, no title bar, right at the click
+            if (menu == IntPtr.Zero && ours && Win32.GetWindowRect(fg, out var fr)
+                && MenuLike(fr, Monitors.ForWindow(fg).Bounds, Win32.GetStyle(fg), c.X, c.Y))
+                menu = fg;
+            switch (FollowUp(menu != IntPtr.Zero, ours))
+            {
+                case TrayFollowUp.Done:
+                    return;
+                case TrayFollowUp.CloseMenuThenDoubleClick:
+                    // Steam and other old-style icons answer a single click with their menu and open on a double
+                    // click; a left click in shft. means "open the app", the menu stays on the right click.
+                    Log.Write($"tray: {e.Name} showed its menu, closing it and double clicking to open it");
+                    Win32.PostMessage(menu, 0x0100 /* WM_KEYDOWN */, new IntPtr(0x1B /* VK_ESCAPE */), IntPtr.Zero);
+                    Win32.PostMessage(menu, 0x0101 /* WM_KEYUP */, new IntPtr(0x1B), IntPtr.Zero);
+                    break;
+                default:
+                    Log.Write($"tray: {e.Name} showed nothing, double click");
+                    break;
+            }
             Send(WM_LBUTTONDBLCLK);
             Send(WM_LBUTTONUP);
         });
     }
+
+    internal enum TrayFollowUp { Done, DoubleClick, CloseMenuThenDoubleClick }
+
+    /// <summary>
+    /// What a left click still needs, 600 ms after it: an app window in front means done; the app's menu instead
+    /// of a window means close it and double click; nothing at all means double click.
+    /// </summary>
+    internal static TrayFollowUp FollowUp(bool appMenuOpen, bool windowAnswered) =>
+        appMenuOpen ? TrayFollowUp.CloseMenuThenDoubleClick : windowAnswered ? TrayFollowUp.Done : TrayFollowUp.DoubleClick;
+
+    /// <summary>A popup that looks like a menu: no title bar, under a quarter of the screen, within 64 px of the click.</summary>
+    internal static bool MenuLike(RECT window, RECT monitor, long style, int clickX, int clickY)
+    {
+        const long WS_CAPTION = 0x00C00000;
+        if ((style & WS_CAPTION) == WS_CAPTION) return false;
+        long area = (long)Math.Max(0, window.Width) * Math.Max(0, window.Height), screen = (long)monitor.Width * monitor.Height;
+        if (area == 0 || area * 4 >= screen) return false;
+        int dx = Math.Max(0, Math.Max(window.Left - clickX, clickX - window.Right));
+        int dy = Math.Max(0, Math.Max(window.Top - clickY, clickY - window.Bottom));
+        return dx <= 64 && dy <= 64;
+    }
+
+    /// <summary>A visible popup menu (class #32768) of the app's process, or zero.</summary>
+    static IntPtr MenuOf(uint pid)
+    {
+        for (var w = FindWindowEx(IntPtr.Zero, IntPtr.Zero, "#32768", null); w != IntPtr.Zero; w = FindWindowEx(IntPtr.Zero, w, "#32768", null))
+        {
+            if (!Win32.IsWindowVisible(w)) continue;
+            Win32.GetWindowThreadProcessId(w, out uint owner);
+            if (owner == pid) return w;
+        }
+        return IntPtr.Zero;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string cls, string? title);
 
     /// <summary>
     /// After a left click on a tray icon: did the app answer? Its own window or menu, or a window of a program in its

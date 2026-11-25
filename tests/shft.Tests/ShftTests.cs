@@ -836,3 +836,33 @@ public class ReturningGameTests
     [Fact] public void Game_back_on_screen_is_not_returning_any_more() => Assert.False(Monitors.Restoring(false, new RECT(0, 0, 1920, 1080)));
     [Fact] public void Unknown_window_is_never_a_returning_game() => Assert.False(Monitors.IsReturningGame(IntPtr.Zero));
 }
+
+public class TrayFollowUpTests
+{
+    [Fact] // Steam: a single click opens its menu; shft. closes it and double clicks, which opens Steam
+    public void Menu_instead_of_a_window_is_closed_and_double_clicked() =>
+        Assert.Equal(TrayHost.TrayFollowUp.CloseMenuThenDoubleClick, TrayHost.FollowUp(appMenuOpen: true, windowAnswered: true));
+
+    [Fact] // Discord, Steam's chat: a window came up, nothing more to do
+    public void Window_in_front_is_done() => Assert.Equal(TrayHost.TrayFollowUp.Done, TrayHost.FollowUp(false, true));
+
+    [Fact] // ctrl, ExitLag: nothing on a single click, they open on a double click
+    public void Nothing_shown_gets_a_double_click() => Assert.Equal(TrayHost.TrayFollowUp.DoubleClick, TrayHost.FollowUp(false, false));
+}
+
+public class TrayMenuLikeTests
+{
+    static readonly RECT Screen = new(0, 0, 1920, 1080);
+
+    [Fact] public void Small_popup_at_the_click_is_a_menu() =>
+        Assert.True(TrayHost.MenuLike(new RECT(1500, 40, 1720, 420), Screen, unchecked((long)0x96000000), 1510, 30));
+
+    [Fact] public void Main_window_is_not_a_menu() =>
+        Assert.False(TrayHost.MenuLike(new RECT(200, 100, 1600, 950), Screen, unchecked((long)0x96000000), 1510, 30));
+
+    [Fact] public void Chat_window_opened_elsewhere_is_not_a_menu() =>
+        Assert.False(TrayHost.MenuLike(new RECT(300, 300, 700, 900), Screen, unchecked((long)0x96000000), 1510, 30));
+
+    [Fact] public void Captioned_window_is_not_a_menu() =>
+        Assert.False(TrayHost.MenuLike(new RECT(1500, 40, 1720, 420), Screen, 0x00C00000, 1510, 30));
+}
