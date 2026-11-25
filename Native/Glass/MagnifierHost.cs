@@ -50,6 +50,14 @@ public static class MagnifierHost
 
     public static void Wake() => WakeEvent.Set();
 
+    /// <summary>Runs on the magnifier thread without waiting (moving hosts, filter lists): the UI never blocks on it.</summary>
+    public static void Post(Action action)
+    {
+        Ensure();
+        Queue.Enqueue(() => { try { action(); } catch (Exception ex) { Core.Log.Write("real glass: " + ex.Message); } });
+        WakeEvent.Set();
+    }
+
     public static void Shutdown()
     {
         lock (Gate) { if (_thread == null) return; _quit = true; }

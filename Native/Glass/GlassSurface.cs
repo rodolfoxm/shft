@@ -239,9 +239,9 @@ public sealed class GlassSurface : IGlassSource, IDisposable
     {
         _built = false;
         MagnifierHost.Remove(this);
-        if (_pool != null) _pool.FrameArrived -= OnFrame;
         lock (_dev.Gate)
         {
+            if (_pool != null) _pool.FrameArrived -= OnFrame;
             _session?.Dispose(); _session = null;
             _pool?.Dispose(); _pool = null;
             _srv?.Dispose(); _srv = null;
@@ -274,7 +274,7 @@ public sealed class GlassSurface : IGlassSource, IDisposable
         GlassNative.SetWindowPos(_glassHwnd, band, 0, 0, 0, 0, Keep | GlassNative.SWP_ASYNCWINDOWPOS);
         GlassNative.SetWindowPos(_glassHwnd, owner, glass.X, glass.Y, glass.Width, glass.Height, GlassNative.SWP_NOACTIVATE | GlassNative.SWP_ASYNCWINDOWPOS);
         if (host != IntPtr.Zero)
-            MagnifierHost.Invoke(() =>
+            MagnifierHost.Post(() =>
             {
                 GlassNative.SetWindowPos(host, band, 0, 0, 0, 0, Keep);
                 GlassNative.SetWindowPos(host, _glassHwnd, src.X, src.Y, src.Width, src.Height, GlassNative.SWP_NOACTIVATE);
@@ -297,7 +297,8 @@ public sealed class GlassSurface : IGlassSource, IDisposable
         {
             if (!s._built) continue;
             var ex = s.Exclusions();
-            MagnifierHost.Invoke(() => { if (s._magHwnd != IntPtr.Zero) MagnifierHost.SetExclusions(s._magHwnd, s._hostHwnd, ex); });
+            var (mag, host) = (s._magHwnd, s._hostHwnd);
+            if (mag != IntPtr.Zero) MagnifierHost.Post(() => MagnifierHost.SetExclusions(mag, host, ex));
         }
     }
 
@@ -356,12 +357,12 @@ public sealed class GlassSurface : IGlassSource, IDisposable
         if (now == GlassHealth.Fallback && _watch.ShouldRetry)
         {
             Core.Log.Write("real glass: retrying");
-            ThreadPool.QueueUserWorkItem(_ => { if (!_paused) { Release(); Build(); } });
+            _ui.BeginInvoke(() => { if (!_paused && !_disposed) { Release(); Build(); } }); // one thread builds and releases
             now = GlassHealth.Live;
         }
         if (now == _health) return;
         _health = now;
-        if (now != GlassHealth.Live) ThreadPool.QueueUserWorkItem(_ => Release());
+        if (now != GlassHealth.Live) _ui.BeginInvoke(() => { if (!_disposed) Release(); });
         HealthChanged?.Invoke(now);
     }
 

@@ -714,3 +714,16 @@ public class DisplacedFullScreenTests
     public void Left_dock_strip_counts_too() =>
         Assert.True(Monitors.Displaced(new RECT(80, 0, 1360, 960), Screen, new RECT(80, 0, 1280, 960), Popup));
 }
+
+public class TrayClickTests
+{
+    const string Steam = @"C:\Program Files (x86)\Steam\steam.exe";
+
+    [Fact] public void App_window_or_menu_counts_as_answer() => Assert.True(TrayHost.Answered(true, null, Steam));
+    [Fact] public void Helper_in_the_app_folder_counts_as_answer() =>
+        Assert.True(TrayHost.Answered(false, @"C:\Program Files (x86)\Steam\bin\cef\cef.win64\steamwebhelper.exe", Steam));
+    [Fact] public void Previous_app_in_front_means_nothing_showed() =>
+        Assert.False(TrayHost.Answered(false, @"C:\Program Files\Google\Chrome\Application\chrome.exe", Steam));
+    [Fact] public void Sibling_folder_with_the_same_prefix_does_not_count() =>
+        Assert.False(TrayHost.Answered(false, @"C:\Program Files (x86)\SteamTools\x.exe", Steam));
+}

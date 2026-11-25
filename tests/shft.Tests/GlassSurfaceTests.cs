@@ -32,6 +32,7 @@ public class GlassSurfaceTests
     {
         if (!Environment.UserInteractive) return; // needs an interactive desktop
         if (Environment.GetEnvironmentVariable("CI") != null) return; // CI runners have no real desktop to magnify
+        if (Environment.GetEnvironmentVariable("SHFT_DESKTOP_TESTS") != "1") return; // opens windows on the desktop: opt-in (AGENTS.md: tests are pure logic)
         using var dev = GlassDevice.TryCreate(out _);
         if (dev == null) return; // no GPU
 

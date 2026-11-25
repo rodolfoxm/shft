@@ -10,6 +10,7 @@ public class MagnifierHostTests
     public void Filter_list_works_for_two_controls()
     {
         if (!Environment.UserInteractive) return; // needs an interactive desktop
+        if (Environment.GetEnvironmentVariable("SHFT_DESKTOP_TESTS") != "1") return; // opens windows on the desktop: opt-in (AGENTS.md: tests are pure logic)
         IntPtr h1 = default, h2 = default;
         try
         {

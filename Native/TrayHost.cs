@@ -287,7 +287,6 @@ public sealed class TrayHost : IDisposable
         Win32.GetWindowThreadProcessId(e.Owner, out uint pid);
         // any process, as Explorer allows: Steam's chat window belongs to steamwebhelper.exe, not to steam.exe
         AllowSetForegroundWindow(uint.MaxValue);
-        var frontBefore = Win32.GetForegroundWindow();
         Win32.GetCursorPos(out var c);
         void Send(uint m)
         {
@@ -307,13 +306,24 @@ public sealed class TrayHost : IDisposable
         // swapped Steam's chat for its library and brought menus up next to windows.
         Task.Delay(600).ContinueWith(_ =>
         {
-            var now = Win32.GetForegroundWindow();
-            Win32.GetWindowThreadProcessId(now, out uint front);
-            if (front == pid || now != frontBefore || !Win32.IsWindow(e.Owner)) return;
+            Win32.GetWindowThreadProcessId(Win32.GetForegroundWindow(), out uint front);
+            if (Answered(front == pid, Win32.ProcessPath(front), e.ExePath) || !Win32.IsWindow(e.Owner)) return;
             Log.Write($"tray: {e.Name} showed nothing, double click");
             Send(WM_LBUTTONDBLCLK);
             Send(WM_LBUTTONUP);
         });
+    }
+
+    /// <summary>
+    /// After a left click on a tray icon: did the app answer? Its own window or menu, or a window of a program in its
+    /// folder (Steam's chat is steamwebhelper.exe under Steamin).
+    /// </summary>
+    internal static bool Answered(bool sameProcess, string? frontPath, string appPath)
+    {
+        if (sameProcess) return true;
+        var folder = Path.GetDirectoryName(appPath);
+        return !string.IsNullOrEmpty(folder) && frontPath != null
+            && frontPath.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose()

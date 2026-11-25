@@ -74,8 +74,8 @@ public class FlyoutWindow : Window
 
         Deactivated += (_, _) => SafeClose();
         // content that loads after opening (audio devices, notifications) changes the size: the glass follows
-        SizeChanged += (_, _) => FitRealGlass();
-        LocationChanged += (_, _) => FitRealGlass();
+        SizeChanged += (_, _) => Soon(ref _fitPending, FitRealGlass);
+        LocationChanged += (_, _) => Soon(ref _fitPending, FitRealGlass);
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == System.Windows.Input.Key.Escape) SafeClose();
@@ -96,6 +96,7 @@ public class FlyoutWindow : Window
             _glass.Background = null;
             _lens.Background = null;
             DropRealGlass();
+            LayoutUpdated -= OnGroupsLayout; // registered with the dispatcher's layout manager: kept closed panels alive
             MemoryTrim.Soon(Dispatcher);
         };
     }
@@ -341,7 +342,23 @@ public class FlyoutWindow : Window
         _real.SetShape(new Int32Rect(w.Left + mx, w.Top + my, w.Width - 2 * mx, w.Height - 2 * my), Radius * dpi.DpiScaleX);
     }
 
-    void OnGroupsLayout(object? sender, EventArgs e) => UpdateGroups();
+    // LayoutUpdated fires for every layout on the dispatcher (the clock, the Dock's animation): walk once per idle moment
+    void OnGroupsLayout(object? sender, EventArgs e) => Soon(ref _groupsPending, UpdateGroups);
+
+    bool _fitPending, _groupsPending;
+
+    /// <summary>Runs <paramref name="work"/> once after the current burst of layout (content loading in steps).</summary>
+    void Soon(ref bool pending, Action work)
+    {
+        if (pending) return;
+        pending = true;
+        bool fit = work == FitRealGlass;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+        {
+            if (fit) _fitPending = false; else _groupsPending = false;
+            work();
+        });
+    }
 
     void DropRealGlass()
     {

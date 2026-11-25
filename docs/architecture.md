@@ -24,6 +24,10 @@ Core/                 AppSettings (modelo), SettingsStore (JSON), Theme (cores),
 Dock/                 DockWindow, DockView, DockController, DockTile, GlassBar, BackdropWindow
 Native/               Win32, AppBar, WindowTracker, TaskbarControl, IconLoader, BadgeWatcher,
                       Monitors, ShortcutResolver, SystemInfo, MemoryTrim
+Native/Glass/         vidro real (experimental): GlassDevice (D3D11 + shader), MagnifierHost (uma thread para
+                      todas as lupas), GlassSurface (janela de vidro + lupa + captura), ChangeSignal/WindowEvents
+                      (quando redesenhar), GlassPacing/GlassWatchdog (ritmo e guarda). Detalhes em
+                      docs/superpowers/specs/2026-11-22-real-glass-design.md e docs/glass-measurements.md
 Ui/                   SettingsWindow, FlyoutWindow (base), LauncherWindow, StackFlyout, TrayIcon, InputDialog
 Widgets/              WidgetBase (base), WidgetFactory, Time/Productivity/System/Weather/NowPlaying, Graphics
 Assets/dock.ico       ícone do app e da bandeja (recurso WPF)
