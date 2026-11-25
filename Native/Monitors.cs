@@ -118,7 +118,19 @@ public static class Monitors
         if (pid == Environment.ProcessId || !Win32.GetWindowRect(window, out var r)) return false;
         var m = ForWindow(window);
         if (m.Handle != monitor.Handle) return false;
-        return Covers(r, m.Bounds);
+        return FullScreenShape(r, m.Bounds, Win32.GetStyle(window), Win32.IsZoomed(window));
+    }
+
+    /// <summary>
+    /// Covers the monitor and is not just a maximized window with a title bar: with the bars' strip released (an
+    /// update, a resolution change) a maximized browser covers the screen too, and taking it for a game kept the
+    /// strip from ever coming back.
+    /// </summary>
+    internal static bool FullScreenShape(RECT window, RECT bounds, long style, bool zoomed)
+    {
+        const long WS_CAPTION = 0x00C00000;
+        if (zoomed && (style & WS_CAPTION) == WS_CAPTION) return false;
+        return Covers(window, bounds);
     }
 
     /// <summary>The window covers the whole monitor (equal or larger, at any resolution or aspect).</summary>

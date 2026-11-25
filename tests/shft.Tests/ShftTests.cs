@@ -806,3 +806,24 @@ public class GameResolutionTests
         Assert.False(Monitors.Overlaps(main, new RECT(1280, 0, 3840, 32))); // a monitor to the right
     }
 }
+
+public class FullScreenShapeTests
+{
+    static readonly RECT Screen = new(0, 0, 1920, 1080);
+
+    [Fact] // the real values: Brave maximized while the strip was released, during the 1.2.6 update
+    public void Maximized_browser_covering_the_screen_is_not_full_screen() =>
+        Assert.False(Monitors.FullScreenShape(new RECT(-8, -8, 1928, 1088), Screen, 0x17CF0000, zoomed: true));
+
+    [Fact] // CS2's real style and size on its 1280x960 mode
+    public void Borderless_game_is_full_screen() =>
+        Assert.True(Monitors.FullScreenShape(new RECT(0, 0, 1920, 1080), new RECT(0, 0, 1280, 960), 0x16000000, zoomed: false));
+
+    [Fact] // a game that maximizes a borderless popup still counts
+    public void Maximized_borderless_popup_is_full_screen() =>
+        Assert.True(Monitors.FullScreenShape(new RECT(0, 0, 1920, 1080), Screen, unchecked((long)0x91000000), zoomed: true));
+
+    [Fact] // browser F11: no title bar, not maximized
+    public void Browser_in_F11_is_full_screen() =>
+        Assert.True(Monitors.FullScreenShape(new RECT(0, 0, 1920, 1080), Screen, 0x16000000, zoomed: false));
+}
