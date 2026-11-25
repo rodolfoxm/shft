@@ -79,10 +79,22 @@ public static class Monitors
     {
         const long WS_CAPTION = 0x00C00000;
         if ((style & WS_CAPTION) == WS_CAPTION) return false;
-        if (window.Width != bounds.Width || window.Height != bounds.Height) return false;
+        // at least the monitor's size: CS2 keeps a 1920x1080 window on its 1280x960 mode
+        if (window.Width < bounds.Width || window.Height < bounds.Height) return false;
         int dx = window.Left - bounds.Left, dy = window.Top - bounds.Top;
         return (dx != 0 || dy != 0) && dx == work.Left - bounds.Left && dy == work.Top - bounds.Top;
     }
+
+    /// <summary>True when the foreground window is full screen on a monitor that <paramref name="strip"/> touches.</summary>
+    public static bool FullScreenOver(RECT strip)
+    {
+        var fg = Win32.GetForegroundWindow();
+        if (fg == IntPtr.Zero) return false;
+        var m = ForWindow(fg);
+        return IsFullScreen(fg, m) && Overlaps(m.Bounds, strip);
+    }
+
+    internal static bool Overlaps(RECT a, RECT b) => a.Left < b.Right && b.Left < a.Right && a.Top < b.Bottom && b.Top < a.Bottom;
 
     /// <summary>Puts a <see cref="Displaced"/> window back at the screen's corner. True when it moved one.</summary>
     public static bool SnapDisplaced(IntPtr window)

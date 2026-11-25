@@ -59,6 +59,16 @@ public sealed class AppBar : IDisposable
             case DockEdge.Right: rc.Left = rc.Right - thickness; break;
         }
 
+        // A full-screen app (a game) in front of this strip: reserving now makes Windows push it down by the strip.
+        // CS2 switches resolution when it comes back from Alt+Tab, the bars re-reserved and the game moved to (0,32)
+        // with the mouse off. The reservation comes back when the game leaves the front.
+        if (Monitors.FullScreenOver(rc))
+        {
+            if (_registered) Log.Write("app bar: full screen app in front, not reserving");
+            Release();
+            return rc;
+        }
+
         var abd = Data();
         abd.uEdge = _edge;
         abd.rc = rc;

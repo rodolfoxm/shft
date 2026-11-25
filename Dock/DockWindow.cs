@@ -308,7 +308,8 @@ public sealed class DockWindow : Window
             {
                 _fullScreen = full;
                 Log.Write((full ? "full screen app in front: hiding the Dock" : "full screen app gone: the Dock comes back") + " | front: " + Monitors.Describe(Win32.GetForegroundWindow()));
-                ApplyVisibility();
+                if (full) ApplyVisibility();
+                else ApplyLayout(); // reserves its strip again, which it skipped while the game was in front
             }
         }
         if (_tick % 10 == 0) TaskbarControl.Enforce();

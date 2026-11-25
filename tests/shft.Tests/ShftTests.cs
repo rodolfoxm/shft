@@ -711,6 +711,18 @@ public class DisplacedFullScreenTests
     }
 
     [Fact]
+    public void Game_window_larger_than_its_resolution_counts_too() =>
+        Assert.True(Monitors.Displaced(new RECT(0, 32, 1920, 1112), Screen, WorkUnderTopBar, Popup));
+
+    [Fact]
+    public void Strip_overlap()
+    {
+        var mainScreen = new RECT(0, 0, 1280, 960);
+        Assert.True(Monitors.Overlaps(mainScreen, new RECT(0, 0, 1280, 32)));
+        Assert.False(Monitors.Overlaps(mainScreen, new RECT(-1080, -394, 0, -362))); // the second monitor's top bar
+    }
+
+    [Fact]
     public void Left_dock_strip_counts_too() =>
         Assert.True(Monitors.Displaced(new RECT(80, 0, 1360, 960), Screen, new RECT(80, 0, 1280, 960), Popup));
 }
