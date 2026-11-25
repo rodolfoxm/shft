@@ -517,7 +517,8 @@ public sealed class MenuBarWindow : Window
         if (s.TopBarReserve) top = _appBar.Reserve(DockEdge.Top, _monitor.Bounds, height).Top;
         else _appBar.Release();
         _rect = new RECT(_monitor.Bounds.Left, top, _monitor.Bounds.Right, top + height);
-        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, _rect.Left, _rect.Top, _rect.Width, _rect.Height, Win32.SWP_NOACTIVATE | Win32.SWP_SHOWWINDOW);
+        // never makes a bar that is hidden for a full-screen app appear (an app bar change or a resolution switch)
+        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, _rect.Left, _rect.Top, _rect.Width, _rect.Height, Win32.SWP_NOACTIVATE | (IsVisible ? Win32.SWP_SHOWWINDOW : 0));
         _backdrop.SetStyle(acrylic: false, Theme.Resolve(s).IsDark);
         if (s.TopBarStyle == TopBarStyle.Translucent && s.TopBarBlur && IsVisible) _backdrop.Place(_rect, 0);
         else _backdrop.Conceal();

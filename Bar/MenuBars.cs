@@ -106,10 +106,16 @@ public sealed class MenuBars : IDisposable
             gone.Close();
             _bars.Remove(gone);
         }
+        var fg = Win32.GetForegroundWindow();
         foreach (var m in wanted.Where(m => !_bars.Any(b => Same(m, b.Monitor))))
         {
             var bar = new MenuBarWindow(this, m);
-            bar.Show();
+            // A monitor that changed resolution gets a new bar. When that is a game switching modes (CS2 in 4:3 on
+            // every Alt+Tab), the new bar appeared over it mid-switch and the game's mouse came back off: it starts
+            // hidden, and CheckFullScreen shows it once the game leaves.
+            if (s.HideOnFullScreen && Monitors.FullScreenWindow(IntPtr.Zero, fg, m) != IntPtr.Zero)
+                new System.Windows.Interop.WindowInteropHelper(bar).EnsureHandle();
+            else bar.Show();
             _bars.Add(bar);
         }
         ForEach(b => b.Apply());

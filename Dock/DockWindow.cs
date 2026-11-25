@@ -105,6 +105,9 @@ public sealed class DockWindow : Window
                 return new IntPtr(MA_NOACTIVATE);
             case WM_DISPLAYCHANGE:
             case WM_DPICHANGED:
+                // a game switching resolution: hide first, so no topmost Dock sits in front of it during the switch
+                _monitor = Monitors.Pick(SettingsStore.Current.Monitor);
+                CheckFullScreen();
                 Dispatcher.BeginInvoke(ApplyLayout, DispatcherPriority.Background);
                 break;
             case WM_SETTINGCHANGE:
@@ -283,11 +286,26 @@ public sealed class DockWindow : Window
         _view.Configure(s, Theme.Resolve(s));
     }
 
+    /// <summary>A full-screen app in front of the Dock's monitor hides it; when it leaves, the Dock and its strip come back.</summary>
+    void CheckFullScreen()
+    {
+        Monitors.SnapDisplaced(Win32.GetForegroundWindow());
+        _game = Monitors.FullScreenWindow(_game, Win32.GetForegroundWindow(), _monitor);
+        bool full = _game != IntPtr.Zero;
+        if (full == _fullScreen) return;
+        _fullScreen = full;
+        Log.Write((full ? "full screen app in front: hiding the Dock" : "full screen app gone: the Dock comes back") + " | front: " + Monitors.Describe(Win32.GetForegroundWindow()));
+        if (full) ApplyVisibility();
+        else ApplyLayout(); // reserves its strip again, which it skipped while the game was in front
+    }
+
     void ApplyVisibility()
     {
         bool show = !(_fullScreen && SettingsStore.Current.HideOnFullScreen);
-        if (show && !IsVisible) Show();
-        Opacity = show ? 1 : 0;
+        // Really hidden, not just transparent: an invisible topmost window still sat in front of the game while CS2
+        // switched to its 4:3 mode on returning from Alt+Tab, and its mouse came back off.
+        if (show) { if (!IsVisible) Show(); }
+        else if (IsVisible) Hide();
         IsHitTestVisible = show;
         SyncBackdrop();
     }
@@ -299,19 +317,7 @@ public sealed class DockWindow : Window
         _tick++;
         if (_realHealth == GlassHealth.Fallback && _tick % 10 == 0) _real?.Tick(); // lets the glass retry after 30 s
 
-        if (_tick % 5 == 0)
-        {
-            Monitors.SnapDisplaced(Win32.GetForegroundWindow());
-            _game = Monitors.FullScreenWindow(_game, Win32.GetForegroundWindow(), _monitor);
-            bool full = _game != IntPtr.Zero;
-            if (full != _fullScreen)
-            {
-                _fullScreen = full;
-                Log.Write((full ? "full screen app in front: hiding the Dock" : "full screen app gone: the Dock comes back") + " | front: " + Monitors.Describe(Win32.GetForegroundWindow()));
-                if (full) ApplyVisibility();
-                else ApplyLayout(); // reserves its strip again, which it skipped while the game was in front
-            }
-        }
+        if (_tick % 5 == 0) CheckFullScreen();
         if (_tick % 10 == 0) TaskbarControl.Enforce();
 
         if (!Win32.GetCursorPos(out var c)) return;
