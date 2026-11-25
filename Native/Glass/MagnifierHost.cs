@@ -79,8 +79,11 @@ public static class MagnifierHost
 
     static void Loop()
     {
+        // Initialized only while a magnifier exists: an initialized magnifier left full-screen games (CS2 in 4:3)
+        // with the mouse off, so with no glass on screen (a game in front) it is shut down completely.
         Available = GlassNative.MagInitialize();
         if (!Available) Core.Log.Write("real glass: MagInitialize failed");
+        else { GlassNative.MagUninitialize(); }
         var timer = GlassNative.CreateWaitableTimerEx(IntPtr.Zero, null, 0x2 /* high resolution */, 0x1F0003);
         var handles = new[] { timer, WakeEvent.SafeWaitHandle.DangerousGetHandle() };
         var list = new List<IGlassSource>();
@@ -111,7 +114,8 @@ public static class MagnifierHost
         }
         while (Queue.TryDequeue(out var a)) a();
         GlassNative.CloseHandle(timer);
-        if (Available) GlassNative.MagUninitialize();
+        if (_initialized) GlassNative.MagUninitialize();
+        _initialized = false;
         lock (Gate) _thread = null;
     }
 
@@ -119,8 +123,17 @@ public static class MagnifierHost
     /// On the magnifier thread: a host window (alpha 1, invisible on screen but on-screen so it keeps updating) with a
     /// magnifier control at 1:1 that leaves out <paramref name="exclude"/> and the host itself.
     /// </summary>
+    static bool _initialized; // magnifier thread only
+    static int _hosts;
+
     internal static (IntPtr Host, IntPtr Mag) CreateMagnifier(Int32Rect at, IReadOnlyList<IntPtr> exclude)
     {
+        if (!_initialized)
+        {
+            if (!GlassNative.MagInitialize()) throw new InvalidOperationException("MagInitialize");
+            _initialized = true;
+        }
+        _hosts++;
         var host = GlassNative.CreateLayer(GlassNative.EX_LAYERED, at.X, at.Y, at.Width, at.Height);
         if (host == IntPtr.Zero) throw new InvalidOperationException("magnifier host window");
         GlassNative.SetLayeredWindowAttributes(host, 0, 1, 2 /* LWA_ALPHA */);
@@ -131,6 +144,15 @@ public static class MagnifierHost
         GlassNative.MagSetWindowTransform(mag, ref identity);
         if (!SetExclusions(mag, host, exclude)) { GlassNative.DestroyWindow(host); throw new InvalidOperationException("magnifier filter list"); }
         return (host, mag);
+    }
+
+    /// <summary>On the magnifier thread: destroys a host made by <see cref="CreateMagnifier"/>; the last one shuts the magnifier down.</summary>
+    internal static void DestroyMagnifier(IntPtr host)
+    {
+        GlassNative.DestroyWindow(host);
+        if (--_hosts > 0 || !_initialized) return;
+        GlassNative.MagUninitialize();
+        _initialized = false;
     }
 
     internal static bool SetExclusions(IntPtr mag, IntPtr host, IReadOnlyList<IntPtr> exclude)

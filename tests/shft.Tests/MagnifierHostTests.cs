@@ -26,7 +26,7 @@ public class MagnifierHostTests
         }
         finally
         {
-            MagnifierHost.Invoke(() => { GlassNativeForTests.Destroy(h1); GlassNativeForTests.Destroy(h2); });
+            MagnifierHost.Invoke(() => { if (h1 != IntPtr.Zero) MagnifierHost.DestroyMagnifier(h1); if (h2 != IntPtr.Zero) MagnifierHost.DestroyMagnifier(h2); });
         }
     }
 }

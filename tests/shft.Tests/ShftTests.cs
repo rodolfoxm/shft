@@ -827,36 +827,3 @@ public class FullScreenShapeTests
     public void Browser_in_F11_is_full_screen() =>
         Assert.True(Monitors.FullScreenShape(new RECT(0, 0, 1920, 1080), Screen, 0x16000000, zoomed: false));
 }
-
-public class OversizedGameWindowTests
-{
-    static readonly RECT Mode43 = new(0, 0, 1280, 960);
-    const long Cs2Style = 0x16000000, Captioned = 0x00C00000;
-
-    [Fact] // the values the monitor recorded: CS2 in 4:3 after Alt+Tab
-    public void Cs2_desktop_sized_window_on_a_4_3_mode_is_fitted() =>
-        Assert.True(Monitors.Oversized(new RECT(0, 0, 1920, 1080), Mode43, Cs2Style, spillsOntoAnotherMonitor: false));
-
-    [Fact]
-    public void Window_of_the_mode_size_is_left_alone() =>
-        Assert.False(Monitors.Oversized(new RECT(0, 0, 1280, 960), Mode43, Cs2Style, false));
-
-    [Fact]
-    public void Game_spanning_onto_another_monitor_is_left_alone() =>
-        Assert.False(Monitors.Oversized(new RECT(0, 0, 3840, 1080), new RECT(0, 0, 1920, 1080), Cs2Style, spillsOntoAnotherMonitor: true));
-
-    [Fact]
-    public void Captioned_or_off_corner_windows_are_left_alone()
-    {
-        Assert.False(Monitors.Oversized(new RECT(0, 0, 1920, 1080), Mode43, Captioned, false));
-        Assert.False(Monitors.Oversized(new RECT(-8, -8, 1928, 1088), Mode43, Cs2Style, false));
-    }
-
-    [Theory, MemberData(nameof(GameResolutionTests.Modes), MemberType = typeof(GameResolutionTests))]
-    public void Any_smaller_mode_under_a_bigger_desktop_window_is_fitted(int w, int h, double scale)
-    {
-        _ = scale;
-        int dw = Math.Max(w + 1, 1920), dh = Math.Max(h, 1080);
-        Assert.True(Monitors.Oversized(new RECT(0, 0, dw, dh), new RECT(0, 0, w, h), Cs2Style, false));
-    }
-}

@@ -259,7 +259,7 @@ public sealed class GlassSurface : IGlassSource, IDisposable
         GlassNative.ShowWindowAsync(_glassHwnd, 0);
         try
         {
-            if (host != IntPtr.Zero) MagnifierHost.Invoke(() => GlassNative.DestroyWindow(host));
+            if (host != IntPtr.Zero) MagnifierHost.Invoke(() => MagnifierHost.DestroyMagnifier(host));
         }
         catch (TimeoutException) { Core.Log.Write("real glass: magnifier thread busy on release"); }
     }

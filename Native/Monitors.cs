@@ -106,38 +106,20 @@ public static class Monitors
         if (pid == Environment.ProcessId) return false;
         var m = ForWindow(window);
         long style = Win32.GetStyle(window);
-        bool spills = OnAnyMonitor(r.Right - 1, r.Top) && !Inside(r.Right - 1, r.Top, m.Bounds)
-                   || OnAnyMonitor(r.Left, r.Bottom - 1) && !Inside(r.Left, r.Bottom - 1, m.Bounds);
-        bool displaced = Displaced(r, m.Bounds, m.WorkArea, style), oversized = Oversized(r, m.Bounds, style, spills);
-        if (!displaced && !oversized) { _misfit = default; return false; }
+        // shortcut: only moves (never resizes): CS2 in 4:3 keeps a window bigger than its mode on purpose and sized
+        // it back every 2 s when shft. fitted it.
+        if (!Displaced(r, m.Bounds, m.WorkArea, style)) { _misfit = default; return false; }
         // only a state that lasts: while a game switches resolution its window and the mode change a moment apart
         var seen = (window, r, m.Bounds);
         if (!_misfit.State.Equals(seen)) { _misfit = (seen, Environment.TickCount64); return false; }
         if (Environment.TickCount64 - _misfit.Since < 1500) return false;
         _misfit = default;
         var b = m.Bounds;
-        Win32.SetWindowPos(window, IntPtr.Zero, b.Left, b.Top, b.Width, b.Height, Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE);
-        Log.Write($"full screen window {(displaced ? "shifted by a bar's strip" : "bigger than its display mode")}, fitted to {b}: " + Describe(window));
+        Win32.SetWindowPos(window, IntPtr.Zero, b.Left, b.Top, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE);
+        Log.Write("full screen window shifted by a bar's strip, put back: " + Describe(window));
         return true;
     }
 
-    /// <summary>
-    /// A borderless full-screen window at the screen's corner but bigger than the monitor's mode, with the extra off
-    /// every monitor: CS2 in 4:3 came back from Alt+Tab with its 1920x1080 window on the 1280x960 mode and the mouse
-    /// off. A window spanning onto another monitor (a game across screens) is left alone.
-    /// </summary>
-    internal static bool Oversized(RECT window, RECT bounds, long style, bool spillsOntoAnotherMonitor)
-    {
-        const long WS_CAPTION = 0x00C00000;
-        if ((style & WS_CAPTION) == WS_CAPTION || spillsOntoAnotherMonitor) return false;
-        return window.Left == bounds.Left && window.Top == bounds.Top
-            && window.Width >= bounds.Width && window.Height >= bounds.Height
-            && (window.Width > bounds.Width || window.Height > bounds.Height);
-    }
-
-    static bool Inside(int x, int y, RECT r) => x >= r.Left && x < r.Right && y >= r.Top && y < r.Bottom;
-
-    static bool OnAnyMonitor(int x, int y) => MonitorFromPoint(new POINT { X = x, Y = y }, 0 /* MONITOR_DEFAULTTONULL */) != IntPtr.Zero;
 
     /// <summary>True when <paramref name="window"/> (normally the foreground one) covers all of the monitor.</summary>
     public static bool IsFullScreen(IntPtr window, MonitorInfo monitor)
