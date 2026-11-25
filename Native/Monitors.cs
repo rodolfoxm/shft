@@ -55,7 +55,12 @@ public static class Monitors
     /// </summary>
     public static IntPtr FullScreenWindow(IntPtr last, IntPtr front, MonitorInfo monitor)
     {
-        if (IsFullScreen(front, monitor)) return front;
+        if (IsFullScreen(front, monitor))
+        {
+            if ((Win32.GetStyle(front) & 0x00C00000) != 0x00C00000) _game = front; // borderless: a game
+            return front;
+        }
+        if (IsReturningGame(front) && ForWindow(front).Handle == monitor.Handle) return front;
         if (last == IntPtr.Zero || !Win32.IsWindow(last) || !Win32.IsWindowVisible(last) || Win32.IsIconic(last) || !IsFullScreen(last, monitor)) return IntPtr.Zero;
         if (front == IntPtr.Zero) return last;
         Win32.GetWindowRect(front, out var r);
@@ -91,8 +96,28 @@ public static class Monitors
         var fg = Win32.GetForegroundWindow();
         if (fg == IntPtr.Zero) return false;
         var m = ForWindow(fg);
-        return IsFullScreen(fg, m) && Overlaps(m.Bounds, strip);
+        return (IsFullScreen(fg, m) || IsReturningGame(fg)) && Overlaps(m.Bounds, strip);
     }
+
+    static IntPtr _game;
+
+    /// <summary>
+    /// The last borderless full-screen window, taking the front again while still minimized or restoring. CS2 is in
+    /// front ~1.6 s before it switches to 4:3 and sizes its window; a top strip still reserved (or redone) at that
+    /// moment left its mouse scaled wrong. Treating it as full screen from the first moment releases the strip first.
+    /// </summary>
+    public static bool IsReturningGame(IntPtr window)
+    {
+        if (window == IntPtr.Zero || window != _game) return false;
+        if (!Win32.IsWindow(window)) { _game = IntPtr.Zero; return false; }
+        Win32.GetWindowRect(window, out var r);
+        if (Restoring(Win32.IsIconic(window), r)) return true;
+        if (!Covers(r, ForWindow(window).Bounds)) _game = IntPtr.Zero; // back as a normal window (a browser out of F11)
+        return false;
+    }
+
+    /// <summary>Minimized, or still parked off screen where Windows keeps minimized windows (-32000).</summary>
+    internal static bool Restoring(bool iconic, RECT window) => iconic || window.Left <= -30000 || window.Top <= -30000;
 
     internal static bool Overlaps(RECT a, RECT b) => a.Left < b.Right && b.Left < a.Right && a.Top < b.Bottom && b.Top < a.Bottom;
 

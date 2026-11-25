@@ -530,7 +530,7 @@ public sealed class MenuBarWindow : Window
     /// </summary>
     public void EnsureReserved()
     {
-        if (_appBar == null || !SettingsStore.Current.TopBarReserve || !IsVisible) return;
+        if (_appBar == null || !SettingsStore.Current.TopBarReserve || !IsVisible || Monitors.FullScreenOver(_monitor.Bounds)) return;
         var info = new MONITORINFOEX { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOEX>() };
         if (!Win32.GetMonitorInfo(_monitor.Handle, ref info) || info.rcWork.Top >= _rect.Bottom) return;
         Log.Write($"top bar: work area starts at {info.rcWork.Top}, reserving again");
@@ -544,6 +544,7 @@ public sealed class MenuBarWindow : Window
         {
             Hide();
             _backdrop.Conceal();
+            _appBar?.Release(); // the strip goes before the game sizes itself, not in the middle of its mode switch
         }
         else
         {

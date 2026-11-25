@@ -827,3 +827,12 @@ public class FullScreenShapeTests
     public void Browser_in_F11_is_full_screen() =>
         Assert.True(Monitors.FullScreenShape(new RECT(0, 0, 1920, 1080), Screen, 0x16000000, zoomed: false));
 }
+
+public class ReturningGameTests
+{
+    [Fact] public void Minimized_game_is_returning() => Assert.True(Monitors.Restoring(true, new RECT(0, 0, 1280, 960)));
+    [Fact] // what the monitor recorded: CS2 in front, no longer iconic, still parked at -32000
+    public void Game_still_parked_off_screen_is_returning() => Assert.True(Monitors.Restoring(false, new RECT(-32000, -32000, -31840, -31972)));
+    [Fact] public void Game_back_on_screen_is_not_returning_any_more() => Assert.False(Monitors.Restoring(false, new RECT(0, 0, 1920, 1080)));
+    [Fact] public void Unknown_window_is_never_a_returning_game() => Assert.False(Monitors.IsReturningGame(IntPtr.Zero));
+}
