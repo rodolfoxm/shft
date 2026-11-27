@@ -53,19 +53,58 @@ public static class Monitors
     /// The full-screen window that <see cref="IsFullScreen"/> last saw on <paramref name="monitor"/>, updated for the
     /// current foreground: kept while it still covers the screen and only an overlay is in front of it.
     /// </summary>
-    public static IntPtr FullScreenWindow(IntPtr last, IntPtr front, MonitorInfo monitor)
+    public static IntPtr FullScreenWindow(IntPtr front, MonitorInfo monitor)
     {
         if (IsFullScreen(front, monitor))
         {
             if ((Win32.GetStyle(front) & 0x00C00000) != 0x00C00000) _game = front; // borderless: a game
             return front;
         }
-        if (IsReturningGame(front) && ForWindow(front).Handle == monitor.Handle) return front;
-        if (last == IntPtr.Zero || !Win32.IsWindow(last) || !Win32.IsWindowVisible(last) || Win32.IsIconic(last) || !IsFullScreen(last, monitor)) return IntPtr.Zero;
-        if (front == IntPtr.Zero) return last;
-        Win32.GetWindowRect(front, out var r);
-        return IsOverlay(Win32.ClassName(front), r, monitor.Bounds) ? last : IntPtr.Zero;
+        if (IsReturningGame(front) && ForWindow(front).Device == monitor.Device) return front;
+        // Not only the focused app: a video full screen on this monitor while you type on the other one is still in
+        // front here (the bar came back over a YouTube video when WhatsApp on the second monitor took the focus).
+        return TopCovering(monitor);
     }
+
+    internal enum Layer { Skip, FullScreen, Covered }
+
+    /// <summary>
+    /// One window on the way down the z-order of a monitor: things that float over a game (small popups, the task
+    /// switcher, click-through overlays, tool windows) are skipped; the first real window decides.
+    /// </summary>
+    internal static Layer Classify(RECT window, RECT monitor, string cls, long style, long exStyle, bool zoomed)
+    {
+        const long WS_EX_TRANSPARENT = 0x20;
+        if (!Overlaps(window, monitor)) return Layer.Skip;
+        if ((exStyle & (WS_EX_TRANSPARENT | Win32.WS_EX_TOOLWINDOW)) != 0) return Layer.Skip;
+        if (cls is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd") return Layer.Covered; // the desktop
+        if (IsOverlay(cls, window, monitor) && !Covers(window, monitor)) return Layer.Skip;
+        if (cls is "XamlExplorerHostIslandWindow" or "Windows.UI.Core.CoreWindow" or "MultitaskingViewFrame" or "ForegroundStaging") return Layer.Skip;
+        return FullScreenShape(window, monitor, style, zoomed) ? Layer.FullScreen : Layer.Covered;
+    }
+
+    /// <summary>The topmost real window on <paramref name="monitor"/> when it covers the monitor, else zero.</summary>
+    static IntPtr TopCovering(MonitorInfo monitor)
+    {
+        for (var w = GetTopWindow(IntPtr.Zero); w != IntPtr.Zero; w = GetWindow(w, 2 /* GW_HWNDNEXT */))
+        {
+            if (!Win32.IsWindowVisible(w) || Win32.IsIconic(w) || Cloaked(w) || !Win32.GetWindowRect(w, out var r)) continue;
+            Win32.GetWindowThreadProcessId(w, out uint pid);
+            if (pid == Environment.ProcessId) continue;
+            switch (Classify(r, monitor.Bounds, Win32.ClassName(w), Win32.GetStyle(w), Win32.GetExStyle(w), Win32.IsZoomed(w)))
+            {
+                case Layer.FullScreen: return w;
+                case Layer.Covered: return IntPtr.Zero;
+            }
+        }
+        return IntPtr.Zero;
+    }
+
+    static bool Cloaked(IntPtr w) => DwmGetWindowAttribute(w, 14 /* DWMWA_CLOAKED */, out int cloaked, sizeof(int)) == 0 && cloaked != 0;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr GetTopWindow(IntPtr parent);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr w, uint cmd);
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr w, int attribute, out int value, int size);
 
     /// <summary>"game.exe UnityWndClass (0,0)-(1920,1080)" for the log.</summary>
     public static string Describe(IntPtr window)
@@ -154,7 +193,7 @@ public static class Monitors
         Win32.GetWindowThreadProcessId(window, out uint pid);
         if (pid == Environment.ProcessId || !Win32.GetWindowRect(window, out var r)) return false;
         var m = ForWindow(window);
-        if (m.Handle != monitor.Handle) return false;
+        if (m.Device != monitor.Device) return false; // by name: a monitor's handle can change with its resolution
         return FullScreenShape(r, m.Bounds, Win32.GetStyle(window), Win32.IsZoomed(window));
     }
 

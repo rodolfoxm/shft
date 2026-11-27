@@ -866,3 +866,31 @@ public class TrayMenuLikeTests
     [Fact] public void Captioned_window_is_not_a_menu() =>
         Assert.False(TrayHost.MenuLike(new RECT(1500, 40, 1720, 420), Screen, 0x00C00000, 1510, 30));
 }
+
+public class TopWindowTests
+{
+    static readonly RECT Main = new(0, 0, 1920, 1080);
+    const long Popup = unchecked((long)0x96000000), Browser = 0x17CF0000;
+
+    [Fact] // YouTube full screen in Brave, WhatsApp focused on the portrait monitor: Brave is still on top of the main one
+    public void Window_on_the_other_monitor_is_skipped() =>
+        Assert.Equal(Monitors.Layer.Skip, Monitors.Classify(new RECT(-1080, -394, 0, 1526), Main, "WinUIDesktopWin32WindowClass", Browser, 0, true));
+
+    [Fact] public void Full_screen_video_on_top_of_its_monitor() =>
+        Assert.Equal(Monitors.Layer.FullScreen, Monitors.Classify(new RECT(0, 0, 1920, 1080), Main, "Chrome_WidgetWin_1", Popup, 0, false));
+
+    [Fact] public void Maximized_window_under_the_bar_is_not_full_screen() =>
+        Assert.Equal(Monitors.Layer.Covered, Monitors.Classify(new RECT(-8, 24, 1928, 1088), Main, "Chrome_WidgetWin_1", Browser, 0, true));
+
+    [Fact] public void Small_popup_over_a_game_is_skipped() =>
+        Assert.Equal(Monitors.Layer.Skip, Monitors.Classify(new RECT(1500, 800, 1900, 1060), Main, "SDL_app", Popup, 0, false));
+
+    [Fact] public void Click_through_full_screen_overlay_is_skipped() =>
+        Assert.Equal(Monitors.Layer.Skip, Monitors.Classify(new RECT(0, 0, 1920, 1080), Main, "CEF-OSC-WIDGET", Popup, 0x20 | 0x80000, false));
+
+    [Fact] public void Task_switcher_is_skipped() =>
+        Assert.Equal(Monitors.Layer.Skip, Monitors.Classify(new RECT(0, 0, 1920, 1080), Main, "XamlExplorerHostIslandWindow", Popup, 0, false));
+
+    [Fact] public void Desktop_means_nothing_full_screen() =>
+        Assert.Equal(Monitors.Layer.Covered, Monitors.Classify(new RECT(-1080, -394, 1920, 1526), Main, "Progman", Popup, 0, false));
+}

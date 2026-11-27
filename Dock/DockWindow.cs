@@ -290,7 +290,7 @@ public sealed class DockWindow : Window
     void CheckFullScreen()
     {
         Monitors.SnapDisplaced(Win32.GetForegroundWindow());
-        _game = Monitors.FullScreenWindow(_game, Win32.GetForegroundWindow(), _monitor);
+        _game = Monitors.FullScreenWindow(Win32.GetForegroundWindow(), _monitor);
         bool full = _game != IntPtr.Zero;
         if (full == _fullScreen) return;
         _fullScreen = full;

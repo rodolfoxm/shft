@@ -12,7 +12,6 @@ namespace Shft.Bar;
 public sealed class MenuBars : IDisposable
 {
     readonly List<MenuBarWindow> _bars = new();
-    readonly Dictionary<MenuBarWindow, IntPtr> _games = new();
     readonly DispatcherTimer _clock = new();
     readonly DispatcherTimer _memory = new() { Interval = TimeSpan.FromSeconds(5) };
     readonly DispatcherTimer _watch = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -113,7 +112,7 @@ public sealed class MenuBars : IDisposable
             // A monitor that changed resolution gets a new bar. When that is a game switching modes (CS2 in 4:3 on
             // every Alt+Tab), the new bar appeared over it mid-switch and the game's mouse came back off: it starts
             // hidden, and CheckFullScreen shows it once the game leaves.
-            if (s.HideOnFullScreen && Monitors.FullScreenWindow(IntPtr.Zero, fg, m) != IntPtr.Zero)
+            if (s.HideOnFullScreen && Monitors.FullScreenWindow(fg, m) != IntPtr.Zero)
                 new System.Windows.Interop.WindowInteropHelper(bar).EnsureHandle();
             else bar.Show();
             _bars.Add(bar);
@@ -163,8 +162,7 @@ public sealed class MenuBars : IDisposable
         bool anyVisible = false;
         foreach (var b in _bars)
         {
-            var game = Monitors.FullScreenWindow(_games.GetValueOrDefault(b), fg, b.Monitor);
-            _games[b] = game;
+            var game = Monitors.FullScreenWindow(fg, b.Monitor);
             bool full = SettingsStore.Current.HideOnFullScreen && game != IntPtr.Zero;
             if (full == b.IsVisible) b.SetHiddenForFullScreen(full);
             anyVisible |= !full;
